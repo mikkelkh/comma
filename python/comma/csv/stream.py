@@ -137,7 +137,7 @@ class stream(object):
                 return np.fromstring(self.source.read(), dtype=self.input_dtype)
             else:
                 count = -1 if size < 0 else size
-                return np.fromfile(self.source, dtype=self.input_dtype, count=count)
+                return np.fromfile(self.source, dtype=self.input_dtype, count=int(count))
         else:
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
@@ -287,7 +287,7 @@ class stream(object):
         return tuple(xpath(name) or name for name in fields.split(','))
 
     def _format(self, binary, format):
-        if isinstance(binary, basestring):
+        if isinstance(binary, str):
             if self.verbose and binary and format and binary != format:
                 msg = "ignoring '{}' and using '{}' since binary keyword has priority" \
                     .format(format, binary)
