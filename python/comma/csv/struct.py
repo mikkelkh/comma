@@ -41,13 +41,15 @@ class struct(object):
         self.concise_types = concise_types
         self.concise_fields = self._fill_blanks(concise_fields)
         self._check_fields_conciseness()
-        self.dtype = np.dtype(zip(self.concise_fields, self.concise_types))
+        #self.dtype = np.dtype(zip(self.concise_fields, self.concise_types))
+        self.dtype = np.dtype([(x,y) for x,y in zip(self.concise_fields, self.concise_types)])
         self.fields = self._full_xpath_fields()
         self.nondefault_fields = self._nondefault_fields()
         self.types = self._basic_types()
         self.shorthand = self._shorthand()
         self.format = ','.join(self.types)
-        self.flat_dtype = np.dtype(zip(self.fields, self.types))
+        #self.flat_dtype = np.dtype(zip(self.fields, self.types))
+        self.flat_dtype = np.dtype([(x,y) for x,y in zip(self.fields, self.types)])
         unrolled_types = types_of_dtype(self.flat_dtype, unroll=True)
         self.unrolled_flat_dtype = structured_dtype(','.join(unrolled_types))
         self.type_of_field = dict(zip(self.fields, self.types))
@@ -88,7 +90,7 @@ class struct(object):
         >>> outer.expand_shorthand('in')
         ('in/i', 'in/j')
         """
-        if isinstance(compressed_fields, basestring):
+        if isinstance(compressed_fields, str):
             compressed_fields = compressed_fields.split(',')
         expand = self.shorthand.get
         field_tuples = map(lambda name: expand(name) or (name,), compressed_fields)
@@ -99,7 +101,7 @@ class struct(object):
         return tuple(map(lambda f: '' if f.startswith(default_name) else f, self.fields))
 
     def _fill_blanks(self, fields):
-        if isinstance(fields, basestring):
+        if isinstance(fields, str):
             fields = fields.split(',')
         ntypes = len(self.concise_types)
         if len(fields) > ntypes:
