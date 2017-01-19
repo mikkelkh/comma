@@ -52,6 +52,11 @@
 #include "../../csv/options.h"
 #include "../../string/string.h"
 
+#include <vector>
+#include <iterator>
+#include <algorithm>
+//#include <iostream>
+
 static void bash_completion( unsigned const ac, char const * const * av )
 {
     static char const * const arguments =
@@ -79,6 +84,7 @@ static void usage( bool verbose )
     std::cerr << "    min: minimum" << std::endl;
     std::cerr << "    max: maximum" << std::endl;
     std::cerr << "    mean: mean value" << std::endl;
+	std::cerr << "    mode: modal value" << std::endl;
     std::cerr << "    percentile=<n>[:<method>]: percentile value" << std::endl;
     std::cerr << "        <n> is the desired percentile (e.g. 0.9)" << std::endl;
     std::cerr << "        <method> is one of 'nearest' or 'interpolate' (default: nearest)" << std::endl;
@@ -309,6 +315,45 @@ class asciiInput
         comma::csv::options csv_;
         boost::scoped_ptr< Values > values_;
 };
+
+template <class Iter>
+typename std::iterator_traits<Iter>::value_type
+	Modes(Iter first, Iter last)
+{
+	typedef typename std::iterator_traits<Iter>::value_type type_t;
+
+	std::vector<type_t> arr (first, last);
+
+	std::sort(arr.begin(), arr.end() );
+
+	type_t output = type_t();
+	int final_frequency = 0;
+	int local_frequency = 0;
+
+	for (typename std::vector<type_t>::iterator it = arr.begin(); it != arr.end()-1; ++it)
+	{
+		if (*it == *(it+1)) local_frequency++;
+		else                local_frequency = 0;
+
+		if (local_frequency > final_frequency)
+		{
+			final_frequency = local_frequency;
+			output = *it;
+		}
+	}
+
+	return output;
+}
+
+template<class InIt, class OutIt>
+OutIt copy_n(InIt src, OutIt dest, size_t n)
+{
+  if (!n) return dest;
+  *dest = *src;
+  while (--n)
+    *++dest = *++src;
+  return ++dest;
+}
 
 class binaryInput
 {
@@ -553,6 +598,48 @@ namespace Operations
             std::multiset< T > values_;
             double percentile_;
             Method method_;
+    };
+
+	template < typename T, comma::csv::format::types_enum F = comma::csv::format::type_to_enum< T >::value >
+    class Mode : public base
+    {
+        public:
+            void push( const char* buf )
+            {
+                values_.insert( comma::csv::format::traits< T, F >::from_bin( buf ));
+            }
+
+            void calculate( char* buf )
+            {
+                std::size_t count = values_.size();
+
+                if( count > 0 )
+                {
+                    comma::verbose << "calculating mode";
+                    T value;
+                    value = values_.size();
+
+                    std::vector<T> vec;
+                    copy_n(values_.rbegin(), std::back_inserter(vec), count);
+
+                    value = Modes(vec.begin(), vec.end());
+
+                    comma::csv::format::traits< T, F >::to_bin( static_cast< T >( value ), buf );
+                }
+            }
+
+            base* clone() const { return new Mode< T, F >( *this ); }
+
+        private:
+            std::multiset< T > values_;
+    };
+
+	template < comma::csv::format::types_enum F >
+    class Mode< boost::posix_time::ptime, F > : public base
+    {
+        void push( const char* ) { COMMA_THROW( comma::exception, "percentile not implemented for time, todo" ); }
+        void calculate( char* ) { COMMA_THROW( comma::exception, "percentile not implemented for time, todo" ); }
+        base* clone() const { COMMA_THROW( comma::exception, "percentile not implemented for time, todo" ); }
     };
 
     template < comma::csv::format::types_enum F >
@@ -956,7 +1043,7 @@ namespace Operations
             std::size_t count_;
     };
 
-    struct Enum { enum Values { min, max, centre, mean, percentile, sum, size, radius, diameter, variance, stddev, skew, kurtosis }; };
+    struct Enum { enum Values { min, max, centre, mean, mode, percentile, sum, size, radius, diameter, variance, stddev, skew, kurtosis }; };
 
     static Enum::Values from_name( const std::string& name )
     {
@@ -964,6 +1051,7 @@ namespace Operations
         else if( name == "max" ) { return Enum::max; }
         else if( name == "centre" ) { return Enum::centre; }
         else if( name == "mean" ) { return Enum::mean; }
+        else if( name == "mode" ) { return Enum::mode; }
         else if( name == "percentile" ) { return Enum::percentile; }
         else if( name == "sum" ) { return Enum::sum; }
         else if( name == "radius" ) { return Enum::radius; }
@@ -987,6 +1075,7 @@ namespace Operations
     template <> struct traits< Enum::max > { template < typename T, comma::csv::format::types_enum F > struct FromEnum { typedef Max< T, F > Type; }; };
     template <> struct traits< Enum::centre > { template < typename T, comma::csv::format::types_enum F > struct FromEnum { typedef Centre< T, F > Type; }; };
     template <> struct traits< Enum::mean > { template < typename T, comma::csv::format::types_enum F > struct FromEnum { typedef Mean< T, F > Type; }; };
+    template <> struct traits< Enum::mode > { template < typename T, comma::csv::format::types_enum F > struct FromEnum { typedef Mode< T, F > Type; }; };
     template <> struct traits< Enum::percentile > { template < typename T, comma::csv::format::types_enum F > struct FromEnum { typedef Percentile< T, F > Type; }; };
     template <> struct traits< Enum::sum > { template < typename T, comma::csv::format::types_enum F > struct FromEnum { typedef Sum< T, F > Type; }; };
     template <> struct traits< Enum::size > { template < typename T, comma::csv::format::types_enum F > struct FromEnum { typedef Size< T, F > Type; }; };
@@ -1116,6 +1205,7 @@ static void init_operations( boost::ptr_vector< Operationbase >& operations
                 case Operations::Enum::max: sample.push_back( new Operation< Operations::Enum::max >( format ) ); break;
                 case Operations::Enum::centre: sample.push_back( new Operation< Operations::Enum::centre >( format ) ); break;
                 case Operations::Enum::mean: sample.push_back( new Operation< Operations::Enum::mean >( format ) ); break;
+                case Operations::Enum::mode: sample.push_back( new Operation< Operations::Enum::mode >( format, operations_parameters[i].options ) ); break;
                 case Operations::Enum::percentile: sample.push_back( new Operation< Operations::Enum::percentile >( format, operations_parameters[i].options ) ); break;
                 case Operations::Enum::radius: sample.push_back( new Operation< Operations::Enum::radius >( format ) ); break;
                 case Operations::Enum::diameter: sample.push_back( new Operation< Operations::Enum::diameter >( format ) ); break;
