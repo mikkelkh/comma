@@ -616,12 +616,11 @@ namespace Operations
                 if( count > 0 )
                 {
                     comma::verbose << "calculating mode";
-                    T value;
-                    value = values_.size();
 
                     std::vector<T> vec;
                     copy_n(values_.rbegin(), std::back_inserter(vec), count);
 
+                    T value;
                     value = Modes(vec.begin(), vec.end());
 
                     comma::csv::format::traits< T, F >::to_bin( static_cast< T >( value ), buf );
@@ -632,6 +631,7 @@ namespace Operations
 
         private:
             std::multiset< T > values_;
+            boost::optional< typename result_traits< T >::type > mode_;
     };
 
 	template < comma::csv::format::types_enum F >
