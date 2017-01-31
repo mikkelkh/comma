@@ -408,13 +408,13 @@ function exclude_generic_tests()
 
 # find "test" file inside a path, checking in each subdirectory (starting from the full path)
 # arguments: <path> <file to find>
-function closest_test_in_path()
+function closest_file_in_path()
 {
-    local path=$1
-    local file="test"
-
+    local path="$1"
+    local file="$2"
+    
     # sanity check (and avoid infinite loop)
-    if [[ -z "$path" ]]; then echo "$name: error: empty path in closest_file_in_path()" >&2; exit 1; fi
+    if [[ -z "$path" || -z "$file" ]]; then echo "$name: error: empty path in closest_file_in_path()" >&2; exit 1; fi
     # get canonical name (so path always starts with "/")
     path=$( readlink -e "$path" )
 
@@ -422,14 +422,14 @@ function closest_test_in_path()
         if [[ -d "$path/$file" ]]; then
             echo "$name: warning: \"$path/$file\" is a directory (expected an executable script); ignoring" >&2
         elif [[ -f "$path/$file" ]]; then
-            if [[ -x "$path/$file" ]]; then echo $path/$file; break
-            else echo "$name: warning: \"$path/$file\" is not executable; ignoring" >&2; fi
+            if [[ $file == "test" && ! -x "$path/$file" ]]; then echo "$name: warning: \"$path/$file\" is not executable; ignoring" >&2 
+            else echo $path/$file; break; fi
         elif [[ $path == "/" ]]; then break
         fi
         path=$( dirname "$path" )
     done
 }
-export -f closest_test_in_path
+export -f closest_file_in_path
 
 # "dirname" with multiple arguments allowed (since some versions of "dirname" don't allow them)
 function get_dirnames()
@@ -536,7 +536,11 @@ export -f default_requirements
 
 function get_required_resources()
 {
-    ( default_requirements; [[ -f ./config ]] && cat ./config; ) | comma_path_value_take_last | name-value-convert --from path-value --to json
+    ( 
+        default_requirements
+        local config=$(closest_file_in_path "." "config")
+        [[ -f "$config" ]] && cat "$config"
+    ) | comma_path_value_take_last | name-value-convert --from path-value --to json
 }
 export -f get_required_resources
 
@@ -611,11 +615,13 @@ function run_and_match_test()
 {
     local test_failed error_files
 
+    local env_variables="PYTHONPATH,XDG_RUNTIME_DIR,DISPLAY"
+    
     rm -rf output || { error_and_junit_ "Unable to remove 'output' directory" ; return 1 ; }
     mkdir -p output || { error_and_junit_ "Unable to make 'output' directory" ; return 1 ; }
 
     {
-        if [[ -f ./input ]] ; then cat ./input ; fi | comma_env --import PYTHONPATH "$test_exec" "$path" $verbose $options_test_option
+        if [[ -f ./input ]] ; then cat ./input ; fi | comma_env --import "$env_variables" "$test_exec" "$path" $verbose $options_test_option
         test_failed=$?
     } >'output/stdout.log' 2>'output/stderr.log'
     error_files="$( find . -name out_of_shared_memory )"
@@ -677,8 +683,9 @@ export -f run_and_match_test
 function get_test_timeout()
 {
     local config_timeout
-    if [[ -f ./config ]]; then
-        config_timeout=$( cat ./config | name-value-get --from=path-value "run/max_time" )
+    local config=$(closest_file_in_path "." "config")
+    if [[ -f "$config" ]]; then
+        config_timeout=$( cat "$config" | name-value-get --from=path-value "run/max_time" )
         if [[ -n $config_timeout ]]; then
             if [[ ! $config_timeout =~ ^[0-9]+$ || $config_timeout -eq 0 ]]; then
                 echo "$name: warning: illegal run/max_time '$config_timeout' in $( pwd )/config (expected integer > 0); using default $max_run_time" >&2
@@ -816,7 +823,7 @@ function run_single_test()
     elif disabled_ "optional" "$dir" "$options_run_optional" ; then
         warning_ "$name: test $counter: $dir: optional, skipped"
     else
-        test_exec=$( closest_test_in_path "$dir" )
+        test_exec=$( closest_file_in_path "$dir" "test" )
         if [[ -z "$test_exec" ]]; then
             error_ "$name: error: no \"test\" script found in any parent directory of $dir"
             result=1

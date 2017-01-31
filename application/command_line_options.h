@@ -119,8 +119,11 @@ class command_line_options
         ///        any other command line parameters starting with - or -- are considered options with values
         std::vector< std::string > unnamed( const std::string& valueless_options, const std::string& options_with_values = "-.*" ) const;
         
-        /// throw, if more than one of given options exists (freaking ugly name)
-        void assert_mutually_exclusive( const std::string& names ) const;
+        /// throw, if more than one of given options exists
+        void assert_mutually_exclusive( const std::string& comma_separated_names ) const;
+        
+        /// throw, if at least one option from each set is present
+        void assert_mutually_exclusive( const std::string& first, const std::string& second ) const;
 
         /// description
         struct description

@@ -132,3 +132,8 @@ function comma_test_run_tarball()
     return $rv
 }
 
+function comma_test_interactive_init()
+{
+    [[ -n "$XDG_RUNTIME_DIR" && -n "$DISPLAY" ]] || { echo "error: cannot access X server for interactive test" >&2; return 1 ; }
+    return 0
+}

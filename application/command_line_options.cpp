@@ -169,14 +169,23 @@ void command_line_options::fill_map_( const std::vector< std::string >& v )
 
 void command_line_options::assert_mutually_exclusive( const std::string& names ) const
 {
-    std::vector< std::string > v = comma::split( names, ',' );
+    const std::vector< std::string >& v = comma::split( names, ',' );
     std::size_t count = 0;
     for( std::size_t i = 0; i < v.size(); ++i )
     {
         count += exists( v[i] );
         if( count > 1 ) { COMMA_THROW( comma::exception, "options " << names << " are mutually exclusive" ); }
     }
+}
 
+void command_line_options::assert_mutually_exclusive( const std::string& first, const std::string& second ) const
+{
+    const std::vector< std::string >& v = comma::split( first, ',' );
+    const std::string* f = NULL;
+    for( std::size_t i = 0; i < v.size(); ++i ) { if( exists( v[i] ) ) { f = &v[i]; break; } }
+    if( !f ) { return; }
+    const std::vector< std::string >& w = comma::split( second, ',' );
+    for( std::size_t i = 0; i < w.size(); ++i ) { if( exists( w[i] ) ) { COMMA_THROW( comma::exception, "options " << *f << " and " << w[i] << " are mutually exclusive" ); } }
 }
 
 void command_line_options::assert_valid( const std::vector< description >& d, bool unknown_options_invalid )

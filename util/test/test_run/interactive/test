@@ -1,0 +1,7 @@
+#!/bin/bash
+
+source $(type -p comma-application-util)
+source $(type -p comma-process-util)
+
+zenity --question --text="Do you want the test to succeed?"
+comma_status_ok || exit 1

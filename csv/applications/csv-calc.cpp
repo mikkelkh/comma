@@ -1287,6 +1287,9 @@ int main( int ac, char** av )
             std::vector < std::string > output_fields;
             for (std::size_t op = 0; op < v.size(); op++)
             {
+                std::replace(v[op].begin(), v[op].end(), '=', '_');
+                std::replace(v[op].begin(), v[op].end(), '.', '_');
+                std::replace(v[op].begin(), v[op].end(), ':', '_');
                 for (std::size_t f = 0; f < fields.size(); f++ )
                 {
                     if (fields[f] == "" || fields[f] == "id" || fields[f] == "block") { continue; }
