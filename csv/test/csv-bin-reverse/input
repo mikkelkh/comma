@@ -1,0 +1,14 @@
+fields/all[0]="echo 0,1,2,3,4,5,6,7 | csv-to-bin 8ub | csv-bin-reverse ul | csv-from-bin 8ub"
+fields/all[1]="echo 0,1,2,3,4,5,6,7 | csv-to-bin 8ub | csv-bin-reverse 2ui | csv-from-bin 8ub"
+fields/all[2]="echo 0,1,2,3,4,5,6,7 | csv-to-bin 8ub | csv-bin-reverse t | csv-from-bin 8ub"
+fields/all[3]="echo 0,1,2,3,4,5,6,7 | csv-to-bin 8ub | csv-bin-reverse uw,uw,uw,uw | csv-from-bin 8ub"
+
+fields/basics[0]="echo 0,1,2,3,4,5,6,7 | csv-to-bin 8ub | csv-bin-reverse uw,uw,uw,uw --fields 1 | csv-from-bin 8ub"
+fields/basics[1]="echo 0,1,2,3,4,5,6,7 | csv-to-bin 8ub | csv-bin-reverse uw,uw,uw,uw --fields 2 | csv-from-bin 8ub"
+fields/basics[2]="echo 0,1,2,3,4,5,6,7 | csv-to-bin 8ub | csv-bin-reverse uw,uw,uw,uw --fields 4 | csv-from-bin 8ub"
+fields/basics[3]="echo 0,1,2,3,4,5,6,7 | csv-to-bin 8ub | csv-bin-reverse uw,uw,uw,uw --fields 2-4 | csv-from-bin 8ub"
+
+fields/complement[0]="echo 0,1,2,3,4,5,6,7 | csv-to-bin 8ub | csv-bin-reverse uw,uw,uw,uw --complement --fields 1 | csv-from-bin 8ub"
+fields/complement[1]="echo 0,1,2,3,4,5,6,7 | csv-to-bin 8ub | csv-bin-reverse uw,uw,uw,uw --complement --fields 2 | csv-from-bin 8ub"
+fields/complement[2]="echo 0,1,2,3,4,5,6,7 | csv-to-bin 8ub | csv-bin-reverse uw,uw,uw,uw --complement --fields 4 | csv-from-bin 8ub"
+fields/complement[3]="echo 0,1,2,3,4,5,6,7 | csv-to-bin 8ub | csv-bin-reverse uw,uw,uw,uw --complement --fields 2-4 | csv-from-bin 8ub"

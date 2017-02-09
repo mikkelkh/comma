@@ -113,3 +113,7 @@ if( NOT WIN32 )
     target_link_libraries ( csv-repeat comma_application comma_csv comma_io )
     install( TARGETS csv-repeat RUNTIME DESTINATION ${comma_INSTALL_BIN_DIR} COMPONENT Runtime )
 endif()
+
+add_executable( csv-bin-reverse ${dir}/csv-bin-reverse.cpp )
+target_link_libraries ( csv-bin-reverse ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_string comma_xpath comma_csv )
+install( TARGETS csv-bin-reverse RUNTIME DESTINATION ${comma_INSTALL_BIN_DIR} COMPONENT Runtime )

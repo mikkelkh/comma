@@ -55,7 +55,7 @@
 static void bash_completion( unsigned const ac, char const * const * av )
 {
     static char const * const arguments =
-        " min max mean percentile sum centre diameter radius var stddev size"
+        " min max mean mode percentile sum centre diameter radius var stddev size"
         " --delimiter -d"
         " --fields -f"
         " --output-fields"
@@ -76,27 +76,28 @@ static void usage( bool verbose )
     std::cerr << "<what>: comma-separated list of operations" << std::endl;
     std::cerr << "        results will be output in the same order" << std::endl;
     std::cerr << "        optionally followed by block,id (both as ui, if binary)" << std::endl;
-    std::cerr << "    min: minimum" << std::endl;
+    std::cerr << "    centre: ( min + max ) / 2" << std::endl;
+    std::cerr << "    diameter: max - min" << std::endl;
+    std::cerr << "    kurtosis[=sample|excess]: kurtosis" << std::endl;
+    std::cerr << "         sample: use sample kurtosis (default: population kurtosis)" << std::endl;
+    std::cerr << "         excess: calculate excess kurtosis" << std::endl;
     std::cerr << "    max: maximum" << std::endl;
     std::cerr << "    mean: mean value" << std::endl;
+    std::cerr << "    min: minimum" << std::endl;
+    std::cerr << "    mode: mode value" << std::endl;
     std::cerr << "    percentile=<n>[:<method>]: percentile value" << std::endl;
     std::cerr << "        <n> is the desired percentile (e.g. 0.9)" << std::endl;
     std::cerr << "        <method> is one of 'nearest' or 'interpolate' (default: nearest)" << std::endl;
     std::cerr << "        see --help --verbose for more details" << std::endl;
-    std::cerr << "    sum: sum" << std::endl;
-    std::cerr << "    centre: ( min + max ) / 2" << std::endl;
-    std::cerr << "    diameter: max - min" << std::endl;
     std::cerr << "    radius: size / 2" << std::endl;
-    std::cerr << "    var[=sample]: variance" << std::endl;
-    std::cerr << "         sample: use sample variance (default: population variance)" << std::endl;
-    std::cerr << "    stddev[=sample]: standard deviation" << std::endl;
-    std::cerr << "         sample: use sample stddev (default: population stddev)" << std::endl;
+    std::cerr << "    size: number of values" << std::endl;
     std::cerr << "    skew[=sample]: skew" << std::endl;
     std::cerr << "         sample: use sample skew (default: population stddev)" << std::endl;
-    std::cerr << "    kurtosis[=sample|excess]: kurtosis" << std::endl;
-    std::cerr << "         sample: use sample kurtosis (default: population kurtosis)" << std::endl;
-    std::cerr << "         excess: calculate excess kurtosis" << std::endl;
-    std::cerr << "    size: number of values" << std::endl;
+    std::cerr << "    stddev[=sample]: standard deviation" << std::endl;
+    std::cerr << "         sample: use sample stddev (default: population stddev)" << std::endl;
+    std::cerr << "    sum: sum" << std::endl;
+    std::cerr << "    var[=sample]: variance" << std::endl;
+    std::cerr << "         sample: use sample variance (default: population variance)" << std::endl;
     std::cerr << std::endl;
     std::cerr << "<options>" << std::endl;
     std::cerr << "    --delimiter,-d <delimiter> : default ','" << std::endl;
@@ -242,7 +243,8 @@ class Values
             }
             for( unsigned int i = 0; i < indices_.size(); ++i )
             {
-                format_ += comma::csv::format::to_format( input_format_.offset( indices_[i] ).type );
+                comma::csv::format::element e = input_format_.offset( indices_[i] );
+                format_ += comma::csv::format::to_format( e.type, e.size );
             }
             for( unsigned int i = 0; i < indices_.size(); ++i )
             {
@@ -350,6 +352,72 @@ class binaryInput
         unsigned int offset_;
 };
 
+namespace impl {
+
+template < typename T, typename V > struct map_traits
+{
+    typedef boost::unordered_map< T, V > unordered_map;
+};
+
+template < typename V > struct map_traits< boost::posix_time::ptime, V >
+{
+    struct hash : public std::unary_function< boost::posix_time::ptime, std::size_t >
+    {
+        std::size_t operator()( const boost::posix_time::ptime& t ) const
+        {
+            BOOST_STATIC_ASSERT( sizeof( t ) == sizeof( comma::uint64 ) );
+            std::size_t seed = 0;
+            boost::hash_combine( seed, reinterpret_cast< const comma::uint64& >( t ) ); // quick and dirty
+            return seed;
+        }
+    };
+
+    typedef boost::unordered_map< boost::posix_time::ptime, V, hash > unordered_map;
+};
+
+// todo: reasonable hash for float and double
+// template < typename V > struct map_traits< float, V >
+// {
+//     struct hash : public std::unary_function< float, std::size_t >
+//     {
+//         std::size_t operator()( const float& t ) const
+//         {
+//             std::size_t seed = 0;
+//             boost::hash_combine( seed, t ); // quick and dirty
+//             return seed;
+//         }
+//     };
+// 
+//     typedef boost::unordered_map< float, V, hash > unordered_map;
+// };
+    
+template < typename T >
+class value_count
+{
+    public:
+        typedef typename map_traits< T, comma::uint32 >::unordered_map map_t;
+        
+        void update( const T& t )
+        {
+            typename map_t::iterator it = map_.find( t );
+            if( it == map_.end() ) { map_[t] = 1; } else { ++( it->second ); }
+        }
+        
+        const map_t& map() const { return map_; }
+        
+        typename map_t::value_type mode() const
+        {
+            typename map_t::const_iterator best = map_.begin();
+            for( typename map_t::const_iterator it = map_.begin(); it != map_.end(); ++it ) { if( it->second > best->second ) { best = it; } }
+            return *best;
+        }
+    
+    private:
+        map_t map_;
+};
+
+} // namespace impl {
+
 namespace Operations
 {
     struct base
@@ -438,6 +506,17 @@ namespace Operations
 
     template < typename T > struct result_traits { typedef double type; }; // quick and dirty fix for integer T
     template <> struct result_traits< boost::posix_time::ptime > { typedef boost::posix_time::ptime type; }; // quick and dirty fix for integer T
+    
+    template < typename T, comma::csv::format::types_enum F = comma::csv::format::type_to_enum< T >::value >
+    class Mode : public base
+    {
+        public:
+            void push( const char* buf ) { value_count_.update( comma::csv::format::traits< T, F >::from_bin( buf ) ); }
+            void calculate( char* buf ) { if( !value_count_.map().empty() ) { comma::csv::format::traits< T, F >::to_bin( static_cast< T >( value_count_.mode().first ), buf ); } }
+            base* clone() const { return new Mode< T, F >( *this ); }
+        private:
+            impl::value_count< T > value_count_;
+    };
 
     template < typename T, comma::csv::format::types_enum F = comma::csv::format::type_to_enum< T >::value >
     class Mean : public base
@@ -855,58 +934,6 @@ namespace Operations
             Kurtosis< double, F> kurtosis_;
             boost::optional<boost::posix_time::ptime> first_;
     };
-
-//  previous code for Variance and Stddev:
-//     template < typename T, comma::csv::format::types_enum F = comma::csv::format::type_to_enum< T >::value >
-//     class Variance : public base // todo: generalise for kth moment
-//     {
-//         public:
-//             Variance() : first_( 0 ), count_( 0 ) {}
-//             void push( const char* buf )
-//             {
-//                 T t = comma::csv::format::traits< T, F >::from_bin( buf );
-//                 if( !squares_ ) { first_ = t; }
-//                 t -= first_; // todo: quick and dirty, to account for large numbers; it would be nice to add ld for long double in csv, too
-//                 ++count_;
-//                 mean_ = mean_ ? *mean_ + ( t - *mean_ ) / count_ : t;
-//                 squares_ = squares_ ? *squares_ + ( t * t - *squares_ ) / count_ : t * t;
-//             }
-//             void calculate( char* buf ) { if( count_ > 0 ) { comma::csv::format::traits< T, F sample excess kurtosis:>::to_bin( static_cast< T >( *squares_ - *mean_ * *mean_ ), buf ); } }
-//             base* clone() const { return new Variance< T, F >( *this ); }
-//         private:
-//             friend class Stddev< T, F >;
-//             T first_;
-//             boost::optional< typename result_traits< T >::type > mean_;
-//             boost::optional< typename result_traits< T >::type > squares_;
-//             std::size_t count_;
-//     };
-// 
-//     template < comma::csv::format::types_enum F >
-//     class Variance< boost::posix_time::ptime, F > : public base
-//     {
-//         void push( const char* ) { COMMA_THROW( comma::exception, "variance not implemented for time, todo" ); }
-//         void calculate( char* ) { COMMA_THROW( comma::exception, "variance not implemented for time, todo" ); }
-//         base* clone() const { COMMA_THROW( comma::exception, "variance not implemented for time, todo" ); }
-//     };
-
-//     template < typename T, comma::csv::format::types_enum F = comma::csv::format::type_to_enum< T >::value >
-//     class Stddev : public base
-//     {
-//         public:
-//             void push( const char* buf ) { variance_.push( buf ); }
-//             void calculate( char* buf ) { if( variance_.count_ > 0 ) { comma::csv::format::traits< T, F >::to_bin( static_cast< T >( std::sqrt( static_cast< long double >( *variance_.squares_ - *variance_.mean_ * *variance_.mean_ ) ) ), buf ); } }
-//             base* clone() const { return new Stddev< T, F >( *this ); }
-//         private:
-//             Variance< T, F > variance_;
-//     };
-// 
-//     template < comma::csv::format::types_enum F >
-//     class Stddev< boost::posix_time::ptime, F > : public base
-//     {
-//         void push( const char* ) { COMMA_THROW( comma::exception, "standard deviation not implemented for time, todo" ); }
-//         void calculate( char* ) { COMMA_THROW( comma::exception, "standard deviation not implemented for time, todo" ); }
-//         base* clone() const { COMMA_THROW( comma::exception, "standard deviation not implemented for time, todo" ); }
-//     };                
     
     template < typename T > struct Diff
     {
@@ -956,12 +983,13 @@ namespace Operations
             std::size_t count_;
     };
 
-    struct Enum { enum Values { min, max, centre, mean, percentile, sum, size, radius, diameter, variance, stddev, skew, kurtosis }; };
+    struct Enum { enum Values { min, max, mode, centre, mean, percentile, sum, size, radius, diameter, variance, stddev, skew, kurtosis }; };
 
     static Enum::Values from_name( const std::string& name )
     {
         if( name == "min" ) { return Enum::min; }
         else if( name == "max" ) { return Enum::max; }
+        else if( name == "mode" ) { return Enum::mode; }
         else if( name == "centre" ) { return Enum::centre; }
         else if( name == "mean" ) { return Enum::mean; }
         else if( name == "percentile" ) { return Enum::percentile; }
@@ -987,6 +1015,7 @@ namespace Operations
     template <> struct traits< Enum::max > { template < typename T, comma::csv::format::types_enum F > struct FromEnum { typedef Max< T, F > Type; }; };
     template <> struct traits< Enum::centre > { template < typename T, comma::csv::format::types_enum F > struct FromEnum { typedef Centre< T, F > Type; }; };
     template <> struct traits< Enum::mean > { template < typename T, comma::csv::format::types_enum F > struct FromEnum { typedef Mean< T, F > Type; }; };
+    template <> struct traits< Enum::mode > { template < typename T, comma::csv::format::types_enum F > struct FromEnum { typedef Mode< T, F > Type; }; };
     template <> struct traits< Enum::percentile > { template < typename T, comma::csv::format::types_enum F > struct FromEnum { typedef Percentile< T, F > Type; }; };
     template <> struct traits< Enum::sum > { template < typename T, comma::csv::format::types_enum F > struct FromEnum { typedef Sum< T, F > Type; }; };
     template <> struct traits< Enum::size > { template < typename T, comma::csv::format::types_enum F > struct FromEnum { typedef Size< T, F > Type; }; };
@@ -1116,6 +1145,7 @@ static void init_operations( boost::ptr_vector< Operationbase >& operations
                 case Operations::Enum::max: sample.push_back( new Operation< Operations::Enum::max >( format ) ); break;
                 case Operations::Enum::centre: sample.push_back( new Operation< Operations::Enum::centre >( format ) ); break;
                 case Operations::Enum::mean: sample.push_back( new Operation< Operations::Enum::mean >( format ) ); break;
+                case Operations::Enum::mode: sample.push_back( new Operation< Operations::Enum::mode >( format ) ); break;
                 case Operations::Enum::percentile: sample.push_back( new Operation< Operations::Enum::percentile >( format, operations_parameters[i].options ) ); break;
                 case Operations::Enum::radius: sample.push_back( new Operation< Operations::Enum::radius >( format ) ); break;
                 case Operations::Enum::diameter: sample.push_back( new Operation< Operations::Enum::diameter >( format ) ); break;

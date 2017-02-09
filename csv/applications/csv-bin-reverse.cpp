@@ -38,29 +38,36 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <algorithm>
 #include <iostream>
+#include <set>
+#include <vector>
 #include <boost/lexical_cast.hpp>
-#include "../../application/contact_info.h"
 #include "../../application/command_line_options.h"
 #include "../../csv/format.h"
 #include "../../string/string.h"
 
 using namespace comma;
 
-static void usage()
+static void usage( bool verbose = false )
 {
     std::cerr << std::endl;
-    std::cerr << "simplified, but similar as Linux cut utility, but for \"binary csv\"" << std::endl;
+    std::cerr << "for given fields, reverse byte order (e.g. if your computer uses little endian, and you got big-endian data)" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "usage: cat blah.bin | csv-bin-cut <format> --fields=<fields> [--complement] [--flush]" << std::endl;
-    std::cerr << "    <fields>: field numbers, starting from 1 (to keep" << std::endl;
-    std::cerr << "              consistent with the standard cut utility)" << std::endl;
+    std::cerr << "usage: cat blah.bin | csv-bin-reverse <format> [<options>]" << std::endl;
     std::cerr << std::endl;
-    std::cerr << csv::format::usage() << std::endl;
+    std::cerr << "options" << std::endl;
+    std::cerr << "    --complement: complement fields, same as in cut utility" << std::endl;
+    std::cerr << "    --fields,-f=<fields>: field numbers, starting from 1 (to keep" << std::endl;
+    std::cerr << "                          consistent with the standard cut utility)" << std::endl;
+    std::cerr << "                          field name support: todo; meanwhile use something like:" << std::endl;
+    std::cerr << "                          csv-bin-reverse --fields=$( echo ,,hello,,,world | csv-fields numbers )" << std::endl;
+    std::cerr << "                          default: reverse byte order of all fields" << std::endl;
+    std::cerr << "    --flush: if present, flush stdout after each record" << std::endl;
+    std::cerr << "    --verbose,-v: more output, e.g. --help --verbose" << std::endl;
     std::cerr << std::endl;
-    std::cerr << comma::contact_info << std::endl;
-    std::cerr << std::endl;
-    exit( -1 );
+    if( verbose ) { std::cerr << csv::format::usage() << std::endl << std::endl; }
+    exit( 0 );
 }
 
 int main( int ac, char** av )
@@ -71,12 +78,11 @@ int main( int ac, char** av )
     #endif
     try
     {
-        command_line_options options( ac, av );
-        if( ac < 2 || options.exists( "--help" ) || options.exists( "-h" ) ) { usage(); }
+        command_line_options options( ac, av, usage );
+        if( ac < 2 ) { usage(); }
         comma::csv::format format( av[1] );
         bool flush = options.exists( "--flush" );
-        if( !options.exists( "--fields" ) ) { std::cerr << "csv-bin-cut: please specify --fields" << std::endl; return 1; }
-        std::vector< std::string > v = comma::split( options.value< std::string >( "--fields" ), ',' );
+        std::vector< std::string > v = comma::split( options.value< std::string >( "--fields,-f", std::string( "1-" ) + boost::lexical_cast< std::string >( format.count() ) ), ',' );
         std::vector< comma::csv::format::element > offsets;
         std::set< std::size_t > set;
         std::vector< std::size_t > indices;
@@ -86,43 +92,43 @@ int main( int ac, char** av )
             if( r.size() == 2 )
             {
                 std::size_t begin = boost::lexical_cast< std::size_t >( r[0] );
-                if( begin == 0 ) { std::cerr << "csv-bin-cut: field numbers start with 1 (to keep it consistent with linux cut utility)" << std::endl; return 1; }
+                if( begin == 0 ) { std::cerr << "csv-bin-reverse: field numbers start with 1 (to keep it consistent with linux cut utility)" << std::endl; return 1; }
                 --begin;
                 std::size_t end = boost::lexical_cast< std::size_t >( r[1] );
-                if( end <= begin ) { std::cerr << "csv-bin-cut: expected range, got: " << v[i] << std::endl; return 1; }
+                if( end <= begin ) { std::cerr << "csv-bin-reverse: expected range, got: " << v[i] << std::endl; return 1; }
                 for( unsigned int k = begin; k < end; ++k ) { indices.push_back( k ); set.insert( k ); }
             }
             else
             {
                 std::size_t index = boost::lexical_cast< std::size_t >( v[i] );
-                if( index == 0 ) { std::cerr << "csv-bin-cut: field numbers start with 1 (to keep it consistent with linux cut utility)" << std::endl; return 1; }
+                if( index == 0 ) { std::cerr << "csv-bin-reverse: field numbers start with 1 (to keep it consistent with linux cut utility)" << std::endl; return 1; }
                 --index;
-                if( set.find( index ) != set.end() ) { std::cerr << "csv-bin-cut: duplicated index " << v[i] << std::endl; return 1; }
+                if( set.find( index ) != set.end() ) { std::cerr << "csv-bin-reverse: duplicated index " << v[i] << std::endl; return 1; }
                 indices.push_back( index );
                 set.insert( index );
             }
         }
-        if( options.exists( "--complement" ) )
-        {
-            for( unsigned int i = 0; i < format.count(); ++i ) { if( set.find( i ) == set.end() ) { offsets.push_back( format.offset( i ) ); } }
-        }
-        else
-        {
-            for( unsigned int i = 0; i < indices.size(); ++i ) { offsets.push_back( format.offset( indices[i] ) ); }
-        }
+        if( options.exists( "--complement" ) ) { for( unsigned int i = 0; i < format.count(); ++i ) { if( set.find( i ) == set.end() ) { offsets.push_back( format.offset( i ) ); } } }
+        else { for( unsigned int i = 0; i < indices.size(); ++i ) { offsets.push_back( format.offset( indices[i] ) ); } }
         std::vector< char > buf( format.size() );
         while( std::cin.good() && !std::cin.eof() )
         {
             std::cin.read( &buf[0], format.size() );
             if( std::cin.gcount() == 0 ) { continue; }
-            if( std::cin.gcount() < int( format.size() ) ) { std::cerr << "csv-bin-cut: expected " << format.size() << " bytes, got only " << std::cin.gcount() << std::endl; return 1; }
-            for( unsigned int i = 0; i < offsets.size(); ++i ) { std::cout.write( &buf[0] + offsets[i].offset, offsets[i].size ); }
+            if( std::cin.gcount() < int( format.size() ) ) { std::cerr << "csv-bin-reverse: expected " << format.size() << " bytes, got only " << std::cin.gcount() << std::endl; return 1; }
+            for( unsigned int i = 0; i < offsets.size(); ++i )
+            {
+                char* p = &buf[0] + offsets[i].offset;
+                char* r = p + offsets[i].size - 1;
+                for( ; p < r ; ++p, --r ) { std::swap( *p, *r ); }
+            }
+            std::cout.write( &buf[0], buf.size() );
             if( flush ) { std::cout.flush(); }
         }
         return 0;
     }
-    catch( std::exception& ex ) { std::cerr << "csv-bin-cut: " << ex.what() << std::endl; }
-    catch( ... ) { std::cerr << "csv-bin-cut: unknown exception" << std::endl; }
+    catch( std::exception& ex ) { std::cerr << "csv-bin-reverse: " << ex.what() << std::endl; }
+    catch( ... ) { std::cerr << "csv-bin-reverse: unknown exception" << std::endl; }
     usage();
 }
 
