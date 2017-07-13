@@ -302,8 +302,20 @@ void set_alarm( double duration )
     if ( sigprocmask( SIG_UNBLOCK, &signal_set, NULL ) != 0 ) { COMMA_THROW( comma::exception, "cannot unblock SIGALRM" ); }
 
     struct itimerspec its = { { 0, 0 }, { 0, 0 } };
-    its.it_value.tv_sec = static_cast< time_t >( std::floor( duration ) );
-    its.it_value.tv_nsec = static_cast< time_t >( 1000000000 * ( duration - its.it_value.tv_sec ) );
+    static const long NSEC_PER_SEC = 1000000000L;
+    double sec = std::floor( duration );
+    if( sec < std::numeric_limits< time_t >::max() )
+    {
+        its.it_value.tv_sec = sec;
+        double nsec = ( duration - its.it_value.tv_sec ) * 1e9;
+        if( nsec < NSEC_PER_SEC ) { its.it_value.tv_nsec = nsec; }
+        else if( verbose ) { std::cerr << "comma-timeout-group: warning: nsec duration '" << nsec << "' out of range, using 0" << std::endl; }
+    }
+    else
+    {
+        its.it_value.tv_sec = std::numeric_limits< time_t >::max();
+        if ( verbose ) { std::cerr << "comma-timeout-group: warning: duration '" << duration << "' out of range, using max duration = " << its.it_value.tv_sec << std::endl; }
+    }
     timer_t timerid;
     if ( 0 != timer_create( CLOCK_REALTIME, NULL, &timerid ) ) { COMMA_THROW( comma::exception, "cannot create timer id" ); }
     if ( 0 != timer_settime( timerid, 0, &its, NULL ) ) {

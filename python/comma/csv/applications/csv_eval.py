@@ -71,6 +71,9 @@ examples:
     # select output based on condition
     ( echo 1,2 ; echo 1,3; echo 1,4 ) | %(prog)s --fields=a,b --format=2i --select="(a < b - 1) & (b < 4)"
 
+    # pass through input until condition is met
+    ( echo 1,2 ; echo 1,3; echo 1,4 ) | csv-eval --fields=a,b --format=2i --exit-if="(a < b - 1) & (b < 4)"
+    
     # update input stream values in place
     ( echo 1,2 ; echo 3,4 ) | %(prog)s --fields=x,y "x=x+y; y=y-1"
 
@@ -194,18 +197,30 @@ def get_args():
         action='store_true',
         help='use full xpaths as variable names with / replaced by _ (default: use basenames of xpaths)')
     parser.add_argument(
+        '--default-values',
+        '--default',
+        default='',
+        metavar='<assignments>',
+        help='default values for variables in expressions but not in input stream')
+    parser.add_argument(
+        '--with-error',
+        default='',
+        metavar='<message>',
+        help='if --exit-if, exit with error and a given error message')
+    parser.add_argument(
+        '--exit-if',
+        '--output-until',
+        '--until',
+        default='',
+        metavar='<condition>',
+        help='output all records and exit when the condition is satisfied')
+    parser.add_argument(
         '--select',
         '--output-if',
         '--if',
         default='',
         metavar='<condition>',
         help='select and output records of input stream that satisfy the condition')
-    parser.add_argument(
-        '--default-values',
-        '--default',
-        default='',
-        metavar='<assignments>',
-        help='default values for variables in expressions but not in input stream')
     args = parser.parse_args()
     if args.help:
         if args.verbose:
@@ -235,16 +250,20 @@ def ingest_deprecated_options(args):
 
 
 def check_options(args):
-    if not (args.expressions or args.select):
+    if not (args.expressions or args.select or args.exit_if):
         raise csv_eval_error("no expressions are given")
     if args.binary and args.format:
         raise csv_eval_error("--binary and --format are mutually exclusive")
-    if args.select:
+    if args.select or args.exit_if:
         if args.expressions:
-            msg = "--select <condition> cannot be used with expressions"
+            msg = "--select <condition> and --exit-if <condition> cannot be used with expressions"
             raise csv_eval_error(msg)
         if args.output_fields or args.output_format:
-            msg = "--select cannot be used with --output-fields or --output-format"
+            msg = "--select and --exit-if cannot be used with --output-fields or --output-format"
+            raise csv_eval_error(msg)
+    if args.with_error:
+        if not args.exit_if:
+            msg = "--with-error is only used with --exit-if"
             raise csv_eval_error(msg)
 
 
@@ -369,7 +388,7 @@ def prepare_options(args):
     else:
         args.format = format_without_blanks(args.format, args.fields)
         args.binary = False
-    if args.select:
+    if args.select or args.exit_if:
         return
     var_names = assignment_variable_names(args.expressions)
     args.update_fields = [f for f in var_names if f in args.fields]
@@ -430,7 +449,7 @@ class stream(object):
         self.input = comma.csv.stream(self.input_t, **self.csv_options)
 
     def initialize_update_and_output(self):
-        if self.args.select:
+        if self.args.select or self.args.exit_if:
             return
         if self.args.update_fields:
             all_types = comma.csv.format.to_numpy(self.args.format)
@@ -452,10 +471,11 @@ class stream(object):
         format = self.input_t.format
         print >> file, "expressions: '{}'".format(self.args.expressions)
         print >> file, "select: '{}'".format(self.args.select)
+        print >> file, "exit_if: '{}'".format(self.args.exit_if)
         print >> file, "default values: '{}'".format(self.args.default_values)
         print >> file, "input fields: '{}'".format(fields)
         print >> file, "input format: '{}'".format(format)
-        if self.args.select:
+        if self.args.select or self.args.exit_if:
             return
         update_fields = ','.join(self.update_t.fields) if self.args.update_fields else ''
         output_fields = ','.join(self.output_t.fields) if self.args.output_fields else ''
@@ -532,6 +552,23 @@ def select(stream):
         mask = eval(code, env, {f: input[f] for f in fields})
         stream.input.dump(mask=mask)
 
+def exit_if(stream):
+    env = restricted_numpy_env()
+    exec stream.args.default_values in env
+    fields = stream.input.fields
+    code = compile(stream.args.exit_if, '<string>', 'eval')
+    is_shutdown = comma.signal.is_shutdown()
+    while not is_shutdown:
+        input = stream.input.read(size=1)
+        if input is None:
+            break
+        mask = eval(code, env, {f: input[f] for f in fields})
+        if mask:
+            if not stream.args.with_error: sys.exit()
+            name = os.path.basename(sys.argv[0])
+            print >> sys.stderr, "{} error: {}".format(name, stream.args.with_error)
+            sys.exit(1)
+        stream.input.dump()
 
 def main():
     try:
@@ -540,6 +577,8 @@ def main():
         prepare_options(args)
         if args.select:
             select(stream(args))
+        elif args.exit_if:
+            exit_if(stream(args))
         else:
             evaluate(stream(args))
     except csv_eval_error as e:

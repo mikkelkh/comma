@@ -34,7 +34,6 @@
 #include <string>
 #include "../../application/command_line_options.h"
 #include "../../application/contact_info.h"
-#include "../../application/signal_flag.h"
 #include "../../base/types.h"
 #include "../../csv/stream.h"
 #include "../../name_value/parser.h"
@@ -93,8 +92,7 @@ int main( int ac, char** av )
         comma::csv::options csv( options );
         comma::csv::input_stream< Point > istream( std::cin, csv );
         comma::csv::output_stream< Point > ostream( std::cout, csv );
-        comma::signal_flag is_shutdown;
-        while( !is_shutdown && std::cin.good() && !std::cin.eof() )
+        while( std::cin.good() && !std::cin.eof() )
         {
             const Point* p = istream.read();
             if( !p ) { break; }
@@ -103,7 +101,6 @@ int main( int ac, char** av )
             if( csv.binary() ) { ostream.write( q, istream.binary().last() ); }
             else { ostream.write( q, istream.ascii().last() ); }
         }
-        if( is_shutdown ) { std::cerr << "csv-time-delay: interrupted by signal" << std::endl; }
         return 0;     
     }
     catch( std::exception& ex ) { std::cerr << "csv-time-delay: " << ex.what() << std::endl; }

@@ -335,6 +335,10 @@ class output_stream : public boost::noncopyable
 
         /// write, substituting corresponding fields in the last record read from the input
         void write( const S& s, const input_stream< S >& istream ) { if( binary_ ) { binary_->write( s, istream.binary().last() ); } else { ascii_->write( s, istream.ascii().last() ); } }
+
+        /// append record s to line and write them to output stream
+        /// for ascii stream, line should not have end of line character at the end
+        void append(const std::string& line, const S& s);
         
         /// flush
         void flush() { if( ascii_ ) { ascii_->flush(); } else { binary_->flush(); } }
@@ -351,11 +355,21 @@ class output_stream : public boost::noncopyable
         binary_output_stream< S >& binary() { return *binary_; }
         
         bool is_binary() const { return bool( binary_ ); }
+        
+        std::ostream& os() { return binary_ ? binary_->os_ : ascii_->os_; }
 
     private:
         boost::scoped_ptr< ascii_output_stream< S > > ascii_;
         boost::scoped_ptr< binary_output_stream< S > > binary_;
 };
+
+template < typename S >
+inline void output_stream<S>::append(const std::string& line, const S& s)
+{
+    os().write(&line[0], line.size());
+    if(!is_binary()) { ascii().os_ << ascii().ascii().delimiter(); }
+    write(s);
+}
 
 /// append record s to last record from input stream and and write them to output
 template < typename S, typename T, typename Data >
@@ -382,7 +396,7 @@ class tied
         tied( const input_stream< S >& is, output_stream< T >& os ) : is_( is ), os_( os ) { }
         
         /// append record s to last record from input stream and and write them to output
-        void append( const T& data ) { csv::append( is_, os_, data ); }
+        void append( const T& data ) { os_.append(is_.last(),data); }
         
     private:
         const input_stream< S >& is_;

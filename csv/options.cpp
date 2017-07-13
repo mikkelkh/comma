@@ -52,13 +52,13 @@ namespace impl {
 inline static void init( comma::csv::options& csv_options, const comma::command_line_options& options, const std::string& defaultFields )
 {
     csv_options.full_xpath = options.exists( "--full-xpath" );
-    csv_options.fields = options.value( "--fields", defaultFields );
-    if( options.exists( "--binary" ) )
+    csv_options.fields = options.value( "--fields,-f", defaultFields );
+    if( options.exists( "--binary,-b" ) )
     {
-        boost::optional< std::string > format = options.optional< std::string >( "--binary" );
+        boost::optional< std::string > format = options.optional< std::string >( "--binary,-b" );
         if( format )
         {
-            csv_options.format( options.value< std::string >( "--binary" ) );
+            csv_options.format( options.value< std::string >( "--binary,-b" ) );
         }
     }
     csv_options.precision = options.value< unsigned int >( "--precision", 12 );

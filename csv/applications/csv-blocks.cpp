@@ -39,6 +39,7 @@
 #include <sysexits.h>
 #endif
 
+#include <boost/unordered_map.hpp>
 #include "../../application/command_line_options.h"
 #include "../../application/contact_info.h"
 #include "../../base/types.h"
@@ -53,67 +54,73 @@ struct input_t
 {
     comma::csv::impl::unstructured key;
     input_t()  {}
-    input_t( comma::csv::impl::unstructured key ): key( key ) {}
+    input_t( const comma::csv::impl::unstructured& key ): key( key ) {}
 };
 
-struct input_with_block { comma::uint32 block; };
-struct input_with_index { comma::uint32 index; };
+struct input_with_block
+{
+    comma::uint32 block;
+    input_with_block() : block( 0 ) {}
+};
+
+struct input_with_index
+{
+    comma::uint32 index;
+    input_with_index() : index( 0 ) {}
+};
 
 struct appended_column
 {
     comma::uint32 value;
-    
-    appended_column() : value(0) {}
-    appended_column( comma::uint32 val ) : value(val) {}
+    appended_column( comma::uint32 val = 0 ) : value( val ) {}
+};
+
+struct accumulate_input
+{
+    comma::uint32 block;
+    comma::csv::impl::unstructured key;
+    accumulate_input() : block( 0 ) {}
+    typedef boost::unordered_map< comma::csv::impl::unstructured, std::string, comma::csv::impl::unstructured::hash > unordered_map;
 };
 
 namespace comma { namespace visiting {
 
 template <> struct traits< input_t >
 {
-    template < typename K, typename V > static void visit( const K&, const input_t& p, V& v )
-    {
-        v.apply( "key", p.key );
-    }
-    template < typename K, typename V > static void visit( const K&, input_t& p, V& v )
-    {
-        v.apply( "key", p.key );
-    }
+    template < typename K, typename V > static void visit( const K&, const input_t& p, V& v ) { v.apply( "key", p.key ); }
+    template < typename K, typename V > static void visit( const K&, input_t& p, V& v ) { v.apply( "key", p.key ); }
 };
 
 template <> struct traits< input_with_block >
 {
-    template < typename K, typename V > static void visit( const K&, const input_with_block& p, V& v )
-    {
-        v.apply( "block", p.block );
-    }
-    template < typename K, typename V > static void visit( const K&, input_with_block& p, V& v )
-    {
-        v.apply( "block", p.block );
-    }
+    template < typename K, typename V > static void visit( const K&, const input_with_block& p, V& v ) { v.apply( "block", p.block ); }
+    template < typename K, typename V > static void visit( const K&, input_with_block& p, V& v ) { v.apply( "block", p.block ); }
 };
 
 template <> struct traits< input_with_index >
 {
-    template < typename K, typename V > static void visit( const K&, const input_with_index& p, V& v )
-    {
-        v.apply( "index", p.index );
-    }
-    template < typename K, typename V > static void visit( const K&, input_with_index& p, V& v )
-    {
-        v.apply( "index", p.index );
-    }
+    template < typename K, typename V > static void visit( const K&, const input_with_index& p, V& v ) { v.apply( "index", p.index ); }
+    template < typename K, typename V > static void visit( const K&, input_with_index& p, V& v ) { v.apply( "index", p.index ); }
 };
 
 template <> struct traits< appended_column >
 {
-    template < typename K, typename V > static void visit( const K&, const appended_column& p, V& v )
-    {
-        v.apply( "value", p.value );
+    template < typename K, typename V > static void visit( const K&, const appended_column& p, V& v ) { v.apply( "value", p.value ); }
+    template < typename K, typename V > static void visit( const K&, appended_column& p, V& v ) { v.apply( "value", p.value ); }
+};
+
+template <> struct traits< accumulate_input >
+{
+    template < typename K, typename V > static void visit( const K&, const accumulate_input& p, V& v )
+    { 
+        v.apply( "block", p.block );
+        v.apply( "key", p.key );
     }
-    template < typename K, typename V > static void visit( const K&, appended_column& p, V& v )
-    {
-        v.apply( "value", p.value );
+    
+    template < typename K, typename V > static void visit( const K&, accumulate_input& p, V& v )
+    { 
+        v.apply( "block", p.block );
+        v.apply( "key", p.key );
     }
 };
 
@@ -122,22 +129,30 @@ template <> struct traits< appended_column >
 static void usage( bool more )
 {
     std::cerr << std::endl;
+    std::cerr << "operations contiguous blocks of csv data" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "usage: cat some-data.csv | csv-blocks <operation> [<options>]" << std::endl;
+    std::cerr << std::endl;
     std::cerr << "operations" << std::endl;
+    std::cerr << "    accumulate" << std::endl;
+    std::cerr << "        accumulate records from block to block, keeping the last seen record for each id" << std::endl;
+    std::cerr << "        attention: output does not preserve input order, since there is no reasonable tradeof there" << std::endl;
+    std::cerr << "                   use csv-sort for post-processing, if required" << std::endl;
     std::cerr << "    group|make-blocks" << std::endl;
     std::cerr << "        cat something.csv | csv-blocks group --fields=,id, " << std::endl;
     std::cerr << "            appends group's block field base on specified id key or keys" << std::endl;
-    std::cerr << "    index" << std::endl;
-    std::cerr << "        appends an index field counting the number of records for each block. Use --reverse for count down." << std::endl;
-    std::cerr << "            cat something.csv | csv-blocks index --fields=,block " << std::endl;
+    std::cerr << "    head" << std::endl;
+    std::cerr << "        reads records from first block to stdout, if --num-of-blocks=<num> specified, read more than one blocks" << std::endl;
+    std::cerr << "        requires the index from 'index' mode in the inputs" << std::endl;
+    std::cerr << "            cat something.csv | csv-blocks index --fields=,index " << std::endl;
     std::cerr << "    increment" << std::endl;
     std::cerr << "        increments specified field value, must be uint32 type - any such field can be used as a block:" << std::endl;
     std::cerr << "            cat something.csv | csv-blocks increment --fields=,,block" << std::endl;
     std::cerr << "            cat something.csv | csv-blocks increment --fields=,,block --step 2" << std::endl;
     std::cerr << "            cat something.csv | csv-blocks increment --fields=,,block --step -1" << std::endl;
-    std::cerr << "    head" << std::endl;
-    std::cerr << "        reads records from first block to stdout, if --num-of-blocks=<num> specified, read more than one blocks" << std::endl;
-    std::cerr << "        requires the index from 'index' mode in the inputs" << std::endl;
-    std::cerr << "            cat something.csv | csv-blocks index --fields=,index " << std::endl;
+    std::cerr << "    index" << std::endl;
+    std::cerr << "        appends an index field counting the number of records for each block. Use --reverse for count down." << std::endl;
+    std::cerr << "            cat something.csv | csv-blocks index --fields=,block " << std::endl;
     std::cerr << "    read-until" << std::endl;
     std::cerr << "        reads records until a given index value, e.g:" << std::endl;
     std::cerr << "            cat something.csv | csv-blocks read-until --fields=,index --index=5" << std::endl;
@@ -177,14 +192,21 @@ static void usage( bool more )
     std::cerr << "        cat $block_csv | csv-blocks group --fields=id | csv-blocks index --fields=,,,,block | csv-blocks head --fields=,,,,,index " << std::endl;
     std::cerr << "            After appending the block field, then the block reverse index field, reading a single block from the input is possible" << std::endl;
     std::cerr << std::endl;
+    std::cerr << "    index and head together" << std::endl;
+    std::cerr << "        echo -e \"0\\n0\\n1\\n1\\n1\\n0\\n0\\n0\\n0\" | csv-blocks index --fields=block --reverse | while true ; do" << std::endl;
+    std::cerr << "            block=$( csv-blocks head --fields block,index ) || break ; echo \"---\" ; echo \"$block\"" << std::endl;
+    std::cerr << "        done" << std::endl;
+    std::cerr << "            After indexing the input in reverse order, the stream is read block-by-block, with the first line given the maximal" << std::endl;
+    std::cerr << "            element id in the block, essentially, the block size" << std::endl;
+    std::cerr << std::endl;
     std::cerr << "contact info: " << comma::contact_info <<std::endl;
+    std::cerr << std::endl;
     exit(0);
 }
 
 static bool verbose;
 static bool strict = false;
 static comma::csv::options csv;
-static input_t default_input;
 static bool reverse_index = false;
 // All the data for this block
 static std::deque< std::string > block_records;
@@ -192,7 +214,7 @@ static comma::csv::impl::unstructured keys;
 static comma::uint32 current_block = 1;
 static comma::int32 increment_step = 1;
 
-void flush_indexing( std::deque< std::string >& block_records, bool is_binary, char delimiter )
+static void flush_indexing( std::deque< std::string >& block_records, bool is_binary, char delimiter )
 {
     std::size_t size = block_records.size();
     for( std::size_t i=0; i<size; ++i ) 
@@ -213,8 +235,7 @@ void flush_indexing( std::deque< std::string >& block_records, bool is_binary, c
     block_records.clear();
 }
 
-// This is to load the fields marked 'id' into input_t key structure
-void make_blocks_setup( const comma::command_line_options& options, std::string& first_line )
+template < typename T > static void set_fields( const comma::command_line_options& options, std::string& first_line, T& default_input )
 {
     std::vector< std::string > v = comma::split( csv.fields, ',' );
     comma::csv::format f;
@@ -229,13 +250,7 @@ void make_blocks_setup( const comma::command_line_options& options, std::string&
     }
     // This is to load the keys into input_t structure
     unsigned int size = f.count();
-    for( std::size_t i = 0; i < size; ++i )
-    {
-        if( i < v.size() )
-        {
-            if( v[i] == "id" ) { v[i] = "key/" + default_input.key.append( f.offset( i ).type ); continue; }
-        }
-    }
+    for( std::size_t i = 0; i < size; ++i ) { if( i < v.size() ) { if( v[i] == "id" ) { v[i] = "key/" + default_input.key.append( f.offset( i ).type ); continue; } } }
     csv.fields = comma::join( v, ',' );
 }
 
@@ -289,7 +304,7 @@ comma::uint32 memory_buffer::read_binary_records( comma::uint32 num_record, bool
     return bytes_read;
 }
 
-static comma::uint32 extended_buffer_size = 65536; // 64Kb
+static comma::uint32 extended_buffer_size = 65536; // 64Kb, default, overwritten on demand if a record is longer
 
 static comma::uint32 read_and_write_binary_record()
 {
@@ -312,8 +327,9 @@ static void read_and_write_binary_block()
 {
     comma::uint32 records_to_read = read_and_write_binary_record();
     if( records_to_read == 0 ) { return; }
-    static memory_buffer extended_buffer( extended_buffer_size );
     static const comma::uint32 one_record_size = csv.format().size();
+    extended_buffer_size = std::max( extended_buffer_size, one_record_size );
+    static memory_buffer extended_buffer( extended_buffer_size );
     // maximum number that will fit in the extened_buffer
     comma::uint32 records_in_buffer = comma::uint32(extended_buffer_size / one_record_size) ;
     // only read up to the number of bytes we can hold
@@ -376,23 +392,67 @@ int main( int ac, char** av )
         csv = comma::csv::options( options );
         csv.full_xpath = true;
         csv.quote.reset();
-        
         comma::csv::options csv_out;
         if( csv.binary() ) { csv_out.format( comma::csv::format("ui") ); }
-        
         std::vector< std::string > unnamed = options.unnamed( "--help,-h,--reverse,--verbose,-v", "-.*" );
-        if( unnamed.size() < 1 ) { std::cerr << name() << "expected one operation, got " << comma::join( unnamed, ' ' ) << std::endl; return 1; }
+        if( unnamed.empty() ) { std::cerr << name() << "please specify operation" << std::endl; return 1; }
         const std::string  operation = unnamed.front();
         
         if( verbose ) { std::cerr << name() << "csv fields: " << csv.fields << std::endl; }
         
-        
+        if( operation == "accumulate" )
+        {
+            std::string first_line;
+            accumulate_input default_input;
+            set_fields( options, first_line, default_input );
+            if( verbose ) { std::cerr << name() << "csv fields: " << csv.fields << std::endl; }
+            if ( default_input.key.empty() ) { std::cerr << name() << "please specify at least one id field" << std::endl; return 1; }
+            accumulate_input::unordered_map map;
+            comma::csv::input_stream< accumulate_input > istream( std::cin, csv, default_input );
+            comma::uint32 block = 0;
+            if( !first_line.empty() ) 
+            { 
+                accumulate_input p = comma::csv::ascii< accumulate_input >( csv, default_input ).get( first_line ); 
+                block = p.block;
+                map[ p.key ] = first_line;
+            }
+            std::vector< std::string > fields = comma::split( csv.fields, ',' );
+            for( unsigned int i = 0; i < fields.size(); ++i ) { if( fields[i] != "block" ) { fields[i] = ""; } }
+            comma::csv::options block_csv = csv;
+            block_csv.fields = comma::join( fields, ',' );
+            boost::scoped_ptr< comma::csv::ascii< accumulate_input > > ascii;
+            boost::scoped_ptr< comma::csv::binary< accumulate_input > > binary;
+            if( csv.binary() ) { binary.reset( new comma::csv::binary< accumulate_input >( block_csv, default_input ) ); }
+            else { ascii.reset( new comma::csv::ascii< accumulate_input >( block_csv, default_input ) ); }            
+            while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
+            {
+                const accumulate_input* p = istream.read();
+                if( !p || block != p->block )
+                {
+                    for( accumulate_input::unordered_map::iterator it = map.begin(); it != map.end(); ++it )
+                    {
+                        std::cout.write( &( it->second[0] ), it->second.size() );
+                        if( !csv.binary() ) { std::cout << std::endl; }
+                    }
+                    if( csv.flush ) { std::cout.flush(); }
+                    if( p )
+                    {
+                        block = p->block;
+                        for( accumulate_input::unordered_map::iterator it = map.begin(); it != map.end(); ++it ) { if( binary ) { binary->put( *p, &it->second[0] ); } else { ascii->put( *p, it->second ); } }
+                    }
+                }
+                if( !p ) { break; }
+                map[ p->key ] = istream.last();
+            }
+            return 0;
+        }
         if( operation == "group" || operation == "make-blocks" )
         {
             current_block = options.value< comma::uint32 >( "--starting-block,--from", 0 ); // default is 0
             
             std::string first_line;
-            make_blocks_setup( options, first_line );
+            input_t default_input;
+            set_fields( options, first_line, default_input );
             if( verbose ) { std::cerr << name() << "csv fields: " << csv.fields << std::endl; }
             if ( default_input.key.empty() ) { std::cerr << name() << "please specify at least one id field" << std::endl; return 1; }
             

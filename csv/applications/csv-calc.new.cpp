@@ -40,7 +40,6 @@
 #include <boost/function.hpp>
 #include "../../application/command_line_options.h"
 #include "../../application/contact_info.h"
-#include "../../application/signal_flag.h"
 #include "../../base/types.h"
 #include "../../csv/stream.h"
 #include "../../csv/impl/unstructured.h"
@@ -464,7 +463,6 @@ template <> struct bound_result_traits< boost::posix_time::ptime >
 // } // namespace operations {
 
 static bool verbose;
-static comma::signal_flag is_shutdown;
 static comma::csv::impl::unstructured block;
 static entry_t input;
 static entry_t output;

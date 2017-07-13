@@ -1,0 +1,2 @@
+command/line="--binary=2ui,t,s[100],ui --fields=3 --force-read"
+files/direct="../../../data/file0.bin"

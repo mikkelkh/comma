@@ -38,7 +38,6 @@
 
 #include <boost/optional.hpp>
 #include <boost/program_options.hpp>
-#include "../../application/signal_flag.h"
 #include "../../application/contact_info.h"
 #include "../../csv/impl/program_options.h"
 #include "../../csv/traits.h"
@@ -55,11 +54,10 @@ template < typename T >
 void run()
 {
     comma::csv::applications::split< T > split( duration, suffix, csv, passthrough );
-    comma::signal_flag is_shutdown;
     if( size == 0 )
     {
         std::string line;
-        while( !is_shutdown && std::cin.good() && !std::cin.eof() )
+        while( std::cin.good() && !std::cin.eof() )
         {
             std::getline( std::cin, line );
             if( line.empty() ) { break; }
@@ -72,7 +70,7 @@ void run()
             _setmode( _fileno( stdin ), _O_BINARY );
         #endif
         std::vector< char > packet( size );
-        while( !is_shutdown && std::cin.good() && !std::cin.eof() )
+        while( std::cin.good() && !std::cin.eof() )
         {
             std::cin.read( &packet[0], size );
             if( std::cin.gcount() > 0 ) { split.write( &packet[0], size ); }

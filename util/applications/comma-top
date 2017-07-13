@@ -41,6 +41,7 @@ function description()
 --debug; much more debug output
 --io; if present, run iotop instead of top
 --output-fields; output the field names to stdout and exit
+--num-procs=[<N>]; output the top N processes (default: totals)
 --num-samples=[<N>]; number of samples to take, default: forever, until terminated
 --sampling-interval,--delay=[<time>]; sampling interval, see '-d' option of top (1), default: defined by top (1)
 --top-options=[<options>]; extra command line argument(s) pass to the top (1) utility
@@ -92,8 +93,9 @@ function feeder()
     local extra_opts=$2
     local top_opts="-b $extra_opts"
     [[ -n "$num" ]] && top_opts="$top_opts -n $num"
+    
     # make all buffering per-line
-    stdbuf -oL -eL top $top_opts | grep --line-buffered -A 4 ^top
+    stdbuf -oL -eL top $top_opts 
 }
 
 function extract_cpus()
@@ -115,12 +117,13 @@ function extract_mem()
     echo -n ",$used"
 }
 
-function parser()
+function parser_totals()
 {
     shopt -s extglob
     local timestamp line first shared
     first="true"
-    while true ; do
+    grep --line-buffered -A 4 '^top' \
+    | while true ; do
         read line
         [[ -z "$line" ]] && break
         [[ "$first" == "true" ]] && {
@@ -133,16 +136,25 @@ function parser()
         [[ "$line" = "KiB Swap"* ]] && { extract_mem  "$line" ; echo ; }
         [[ "$line" = "--" ]] && first="true"
     done \
-    | csv-time-stamp 2>/dev/null
+    | sed -u -n '1!p'
+}
+
+function parser_num_procs()
+{
+    grep --line-buffered -E -A $((num_procs + 1)) '^[ ]+PID ' \
+    | sed -r -u -n 's/[[:blank:]]+/,/g ; s/^,// ; /^[0-9]+,/p'
 }
 
 io_payload_fields="total/read,total/write,actual/read,actual/write"
 io_fields="timestamp,$io_payload_fields"
+total_fields="timestamp,cpu/user,cpu/system,cpu/total,memory/ram,memory/shared,memory/swap"
+procs_fields="timestamp,pid,user,priority,nice,memory/virtual,memory/physical,memory/shared,status,cpu/percent,memory/percent,uptime,command"
 
 function output_fields()
 {
     if (( $( comma_options_has --io $@ ) )) ; then echo $io_fields
-    else echo "timestamp,cpu/user,cpu/system,cpu/total,memory/ram,memory/shared,memory/swap" ; fi
+    elif (( $(comma_options_has --num-procs $@ ) )); then echo $procs_fields
+    else echo "$total_fields" ; fi
 }
 
 function run_iotop()
@@ -161,13 +173,13 @@ function run_iotop()
         | csv-time-stamp 2>/dev/null
 }
 
-if (( $( comma_options_has --help $@ ) || $( comma_options_has -h $@ ) )) ; then usage ; exit ; fi
-if (( $( comma_options_has --output-fields $@ ) )) ; then output_fields $@ ; exit ; fi
+if (( $( comma_options_has --help "$@" ) || $( comma_options_has -h "$@" ) )) ; then usage ; exit ; fi
+if (( $( comma_options_has --output-fields "$@" ) )) ; then output_fields "$@" ; exit ; fi
 
 debug=0
 
-description | comma-options-validate $@
-comma_path_value_to_var --export < <( description | comma-options-to-name-value $@ )
+description | comma-options-validate "$@"
+comma_path_value_to_var --export < <( description | comma-options-to-name-value "$@" )
 
 if [[ -n "$io" ]] ; then
     [[ -n "$( sudo which iotop )" ]] || { echo "comma-top: make sure iotop installed" >&2 ; exit 1 ; }
@@ -176,7 +188,7 @@ else
     feeder_opts=""
     [[ -n "$sampling_interval" ]] && feeder_opts="-d $sampling_interval"
     [[ -n "$top_options" ]] && feeder_opts="$feeder_opts $top_options"
-    [[ -n "$num_samples" ]] && (( ++num_samples )) # first line will be ignored, leaving num_samples lines
-    feeder "$num_samples" "$feeder_opts" | parser | sed -u -n '1!p'
+    [[ -n "$num_samples" && -z "$num_procs" ]] && (( ++num_samples )) # first line will be ignored, leaving num_samples lines
+    if [[ -n "$num_procs" ]]; then parser="parser_num_procs"; else parser="parser_totals"; fi
+    feeder "$num_samples" "$feeder_opts" "$num_procs" | $parser | csv-time-stamp 2>/dev/null 
 fi
-

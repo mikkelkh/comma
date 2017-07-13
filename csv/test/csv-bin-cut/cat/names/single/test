@@ -1,0 +1,46 @@
+#!/bin/bash
+
+scriptname=$( basename "$0" )
+
+source $( which comma-application-util ) || { echo "$scriptname: cannot source 'comma-application-util'" >&2; exit 1; }
+
+output_dir="output"
+mkdir -p "$output_dir" || { echo "$scriptname: cannot create directory '$output_dir'" >&2; exit 1; }
+
+comma_path_value_to_var
+
+if [[ -n "$input_files_direct" ]] ; then
+    all_files=$( echo "$input_files_direct" | sed "s@-@$input_files_stdin@" )
+else
+    all_files=$input_files_stdin
+fi
+
+function compare()
+{
+    local cmd="$1"
+    local subdir="$2"
+    mkdir -p "$output_dir/$subdir" || { echo "$scriptname: cannot create directory '$output_dir/$subdir'" >&2; return 1; }
+    cat $input_files_stdin | csv-bin-cut $input_files_direct $cmd > "$output_dir/$subdir/new.bin" || return 1
+    cat $all_files | csv-shuffle $cmd > "$output_dir/$subdir/old.bin" || return 1
+    cmp "$output_dir/$subdir/new.bin" "$output_dir/$subdir/old.bin" > "$output_dir/$subdir/cmp.log"
+}
+
+cmd="--binary=ui,ui,t,s[100],ui --fields=block,counter,t,string,num --output-fields=block"
+compare "$cmd" "1"
+echo "one/field/first/cmp/status=$?"
+
+cmd="--binary=ui,ui,t,s[100],ui --fields=block,counter,t,string,num --output-fields=t"
+compare "$cmd" "2"
+echo "one/field/third/cmp/status=$?"
+
+cmd="--binary=ui,ui,t,s[100],ui --fields=block,counter,t,string,num --output-fields=num"
+compare "$cmd" "3"
+echo "one/field/last/cmp/status=$?"
+
+cmd="--binary=ui,ui,t,s[100],ui --fields=block,counter,t,string --output-fields=block,t"
+compare "$cmd" "4"
+echo "two/fields/expanded/cmp/status=$?"
+
+cmd="--binary=2ui,t,s[100],ui --fields=block,counter,t,string --output-fields=block,t"
+compare "$cmd" "5"
+echo "two/fields/collapsed/cmp/status=$?"

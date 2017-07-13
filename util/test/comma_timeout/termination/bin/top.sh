@@ -25,7 +25,7 @@ function handler()
         wait $cat_pid
         unset cat_pid
     }
-    trap - INT ; kill -s INT $BASHPID
+    trap - INT ; kill -INT $BASHPID
 }
 
 (

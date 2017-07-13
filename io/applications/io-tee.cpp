@@ -204,15 +204,12 @@ int main( int ac, char **av )
                 if ( debug ) { std::cerr << app_name << ": flushing stdout" << std::endl; }
                 std::cout.flush();
                 if ( debug ) { std::cerr << app_name << ": flushing pipe" << std::endl; }
-                if ( ::fflush( pipe ) != 0 )
-                {
-                     std::cerr << app_name << ": flushing pipe failed: " << std::strerror( errno )
-                        << "; command was: " << command << std::endl;
-                     exit( 1 );
-                }
+                if ( ::fflush( pipe ) != 0 ) { std::cerr << app_name << ": flushing pipe failed: " << std::strerror( errno ) << "; command was: " << command << std::endl; ::pclose( pipe ); exit( 1 ); }
                 if ( debug ) { std::cerr << app_name << ": flushed stdout and pipe " << std::endl; }
             }
         }
+        std::cout.flush();
+        ::fflush( pipe );
         int result = ::pclose( pipe );
         if ( result == -1 ) { std::cerr << app_name << ": pipe error: " << std::strerror( errno ) << "; command was: " << command << std::endl; exit( 1 ); }
         else if ( result != 0 ) { std::cerr << app_name << ": command failed: " << command << std::endl; return 1; }

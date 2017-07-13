@@ -39,6 +39,6 @@ echo "process group of timeout: $timeout_pid" >&2
 sleep 1
 pstree -a -l -c -g -p $BASHPID >&2
 echo "app: killing process group $timeout_pid" >&2
-kill -s TERM -- -$timeout_pid
+kill -TERM -- -$timeout_pid
 wait $timeout_pid
 echo "app terminated" >&2

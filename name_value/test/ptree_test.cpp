@@ -562,7 +562,7 @@ TEST ( name_value_ptree, put )
     {
         boost::property_tree::ptree p;
         test_put_( p, "b[0]", "0" );
-        EXPECT_TRUE( property_tree::get( p, "b[0]" ) );
+        EXPECT_TRUE( bool( property_tree::get( p, "b[0]" ) ) );
         EXPECT_EQ( "0", *( property_tree::get( p, "b[0]" ) ) );
     }
     {
@@ -577,8 +577,8 @@ TEST ( name_value_ptree, put )
         test_put_( p, "a/e[1]/f[0]/k", "7" );
         test_put_( p, "a/e[1]/f[1]/m", "8" );
         
-        EXPECT_TRUE( property_tree::get( p, "a/b/c" ) );
-        EXPECT_TRUE( property_tree::get( p, "a/e[0]/x" ) );
+        EXPECT_TRUE( bool( property_tree::get( p, "a/b/c" ) ) );
+        EXPECT_TRUE( bool( property_tree::get( p, "a/e[0]/x" ) ) );
         EXPECT_FALSE( property_tree::get( p, "x/y/z" ) );
         EXPECT_FALSE( property_tree::get( p, "a/b/x" ) );
         EXPECT_FALSE( property_tree::get( p, "a/e[0]/z" ) );

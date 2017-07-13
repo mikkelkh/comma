@@ -41,7 +41,6 @@
 #include <boost/static_assert.hpp>
 #include "../../application/contact_info.h"
 #include "../../application/command_line_options.h"
-#include "../../application/signal_flag.h"
 #include "../../base/types.h"
 #include "../../csv/format.h"
 
@@ -90,7 +89,6 @@ int main( int argc, char** argv )
     }
     socket.bind( boost::asio::ip::udp::endpoint( boost::asio::ip::udp::v4(), port ), error );
     if( error ) { std::cerr << "udp-client: failed to bind port " << port << std::endl; return 1; }
-    comma::signal_flag is_shutdown;
 
     #ifdef WIN32
     if( binary )
@@ -99,7 +97,7 @@ int main( int argc, char** argv )
     }
     #endif
     
-    while( !is_shutdown && std::cout.good() )
+    while( std::cout.good() )
     {
         boost::system::error_code error;
         std::size_t size = socket.receive( boost::asio::buffer( packet ), 0, error );

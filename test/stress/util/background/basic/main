@@ -24,7 +24,7 @@ for n in {1..3} ; do
     builtin echo "$scriptname: attempt to start a background process..." >&2
     comma_process_exec "$fifo" sleep 1 & last_child=$!
     builtin echo "$scriptname: launched background child '$last_child', now verify..." >&2
-    comma_process_validate "$fifo" $last_child || { pkill --signal TERM -P $main_pid; wait; exit 1; }
+    comma_process_validate "$fifo" $last_child || { pkill -TERM -P $main_pid; wait; exit 1; }
     children+=( $last_child )
 done
 

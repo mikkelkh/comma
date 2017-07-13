@@ -113,7 +113,7 @@ declare -r COMMA_PROCESS_KILL_REUSED
 function comma_process_kill_trap_exit_()
 {
     (( verbose == 1 )) && builtin echo "$FUNCNAME: send CONT to $pid" >&2
-    builtin kill -s CONT $pid
+    builtin kill -CONT $pid
 }
 export -f comma_process_kill_trap_exit_
 declare -r comma_process_kill_trap_exit_
@@ -156,13 +156,13 @@ function comma_process_kill_helper_()
     local self=$BASHPID
     [[ "$pid" == "$self" ]] && exit $COMMA_PROCESS_KILL_REUSED
     trap 'comma_process_kill_trap_exit_' EXIT
-    builtin kill -s STOP $pid
+    builtin kill -STOP $pid
     (( $? == 0 )) || { builtin echo "$FUNCNAME: process id '$pid' not found; do not kill, assume terminated by itself" >&2; trap - EXIT; exit $COMMA_PROCESS_KILL_NOT_FOUND; }
     current=$( comma_process_signature $pid )
     (( $? == 0 )) || { builtin echo "$FUNCNAME: cannot get signature of process id '$pid'" >&2; exit $COMMA_PROCESS_KILL_ERROR; }
     [[ "$current" == "$signature" ]] || { builtin echo "$FUNCNAME: process '$pid' has signature '$current' different from expected '$signature'; possibly re-used; refuse to kill" >&2; exit $COMMA_PROCESS_KILL_REUSED; }
-    (( verbose == 1 )) && builtin echo "$FUNCNAME: verification passed, do 'kill -s $signal_to_use ${group}${pid}'" >&2
-    builtin kill -s $signal_to_use ${group}${pid}
+    (( verbose == 1 )) && builtin echo "$FUNCNAME: verification passed, do 'kill -$signal_to_use ${group}${pid}'" >&2
+    builtin kill -$signal_to_use ${group}${pid}
 }
 export -f comma_process_kill_helper_
 declare -r comma_process_kill_helper_
@@ -195,7 +195,7 @@ function comma_process_exec()
     [[ -p "$fifo" ]] || { builtin echo "$FUNCNAME: '$fifo' is not a FIFO" >&2; return 1; }
     local signature
     signature=$( comma_process_signature $self ) || { builtin echo "$FUNCNAME: cannot get process signature for '$self'" >&2; return 1; }
-    local write_timeout=20
+    local write_timeout=60
     # one process only, no need for comma-timeout-group
     timeout -s TERM -k 10 $write_timeout bash -c "builtin echo \"$self $signature\" > \"$fifo\""
     local rv=$?
@@ -236,7 +236,7 @@ function comma_process_validate()
     local expected=$2
     [[ -p "$fifo" ]] || { builtin echo "$FUNCNAME: '$fifo' is not a FIFO" >&2; return 1; }
     local pid status signature
-    local read_timeout=20
+    local read_timeout=60
     # http://stackoverflow.com/questions/6448632/read-not-timing-out-when-reading-from-pipe-in-bash
     # Your shell is blocking on the open() call before invoking the read builtin.
     #
@@ -402,7 +402,7 @@ function terminate_comma_execute_and_wait()
     # kill the command(s) being executed
     if (( cew_verified_pids != 1 )) ; then
         echo "$cew_funcname: terminated before verifying PIDs; kill all child processes instead" >&2
-        pkill --signal $termination_signal -P $cew_pid
+        pkill -$termination_signal -P $cew_pid
         wait
     else
         local command_to_execute_index
@@ -414,7 +414,7 @@ function terminate_comma_execute_and_wait()
                 (( $? == COMMA_PROCESS_KILL_ERROR )) && {
                     echo "$cew_funcname: error in comma_process_kill $cew_verbose_flag --signal=$termination_signal ${killsign}${commands_to_execute_pgid[$command_to_execute_index]} ${commands_to_execute_signature[$command_to_execute_index]}" >&2
                     echo "$cew_funcname: kill all child processes instead" >&2
-                    pkill --signal $termination_signal -P $cew_pid
+                    pkill -$termination_signal -P $cew_pid
                     wait
                 }
                 [[ "$killsign" == "-" ]] && {
@@ -445,7 +445,7 @@ function terminate_comma_execute_and_wait()
         }
     done
     [[ "$comma_execute_and_wait_verbose" == "true" ]] && echo "$cew_funcname: re-raise $received_signal" >&2
-    kill -s $received_signal $cew_pid           # relinguish control
+    kill -$received_signal $cew_pid           # relinguish control
 }
 export -f terminate_comma_execute_and_wait
 declare -r terminate_comma_execute_and_wait
@@ -646,7 +646,7 @@ function comma_execute_and_wait()
         fi
         (( $? == 0 )) || {
             echo "$cew_funcname: terminating self on fatal system error; incorrect background PID reported; re-run your application" >&2
-            kill -s TERM $cew_pid  # go into our signal handler
+            kill -TERM $cew_pid  # go into our signal handler
         }
         commands_to_execute_pgid+=( $! )
         commands_to_execute_signature+=( $comma_process_child_signature )
@@ -719,7 +719,7 @@ function comma_wait_for_process_group()
             (( iter > max_wait_time )) && {
                 echo "$caller_name: exceeded ${max_wait_time}s timeout in waiting for $process_group_id" >&2
                 echo "$name: kill -9 process group $process_group_id" >&2
-                kill -s KILL -- -"$process_group_id"
+                kill -KILL -- -"$process_group_id"
                 return 1
             }
         fi

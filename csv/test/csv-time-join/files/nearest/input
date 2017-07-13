@@ -1,0 +1,4 @@
+input=../../stdin.csv
+bounding=../../bounding.csv
+options="--nearest"
+input_type=file

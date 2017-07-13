@@ -66,7 +66,7 @@ class binary
         const csv::format& format() const { return format_; }
 
     private:
-        const csv::format format_;
+        csv::format format_;
         boost::optional< impl::binary_visitor > binary_;
 };
 

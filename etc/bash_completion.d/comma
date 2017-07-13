@@ -134,9 +134,9 @@ _comma_bash_completion()
     COMPREPLY=( $( compgen -f -d -W "${opts}" -- ${cur}) )
 }
 
+complete -F _comma_bash_completion comma-test-enforce
+complete -F _comma_bash_completion comma-test-run
 complete -F _comma_bash_completion csv-calc
 complete -F _comma_bash_completion csv-repeat
 complete -F _comma_bash_completion csv-units
-complete -F _comma_bash_completion comma-test-enforce
-complete -F _comma_bash_completion comma-test-run
 complete -F _comma_bash_completion io-bandwidth

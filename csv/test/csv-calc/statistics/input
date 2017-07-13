@@ -1,4 +1,4 @@
 input_cmd="echo 1,2,3,4,6 | tr ',' '\\n'"
-options=--fields=a
-operation=mean,var,var=sample,stddev,stddev=sample,skew,skew=sample,kurtosis,kurtosis=sample,kurtosis=excess,kurtosis=sample:excess
-fields=mean,var,var_sample,stddev,stddev_sample,skew,skew_sample,kurtosis,kurtosis_sample,kurtosis_excess,kurtosis_sample_excess
+operation="mean,var,var=sample,stddev,stddev=sample,skew,skew=sample,kurtosis,kurtosis=sample,kurtosis=excess,kurtosis=sample:excess"
+fields=a
+format=d

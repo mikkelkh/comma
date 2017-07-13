@@ -1,0 +1,22 @@
+#!/bin/bash
+
+scriptname=$( basename "$0" )
+source $( which comma-application-util ) || { echo "$scriptname: cannot source 'comma-application-util'" >&2; exit 1; }
+
+output_dir="output"
+mkdir -p "$output_dir" || { echo "$scriptname: cannot create output directory '$output_dir'" >&2; exit 1; }
+
+eval $( cat | comma_path_value_mangle | sed 's/^/input_/' )
+
+eval $( cat "$input_data_json" | name-value-convert | comma_path_value_mangle | sed 's/^/data_/' )
+
+cut_bin="$output_dir/cut.bin"
+cat "$input_data_bin" | csv-bin-cut $data_binary --fields $input_output_fields > "$cut_bin"
+echo "status=$?"
+
+shuffled_bin="$output_dir/shuffled.bin"
+output_fields=$( echo "$data_fields" | cut -d, -f$input_output_fields )
+cat "$input_data_bin" | csv-shuffle --binary="$data_binary" --fields="$data_fields" --output-fields="$output_fields" > "$shuffled_bin"
+
+cmp "$cut_bin" "$shuffled_bin" >&2
+echo "match=$(( ! $? ))"

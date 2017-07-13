@@ -1,0 +1,3 @@
+input/files/stdin="../../../../data/file1.bin"
+input/binary="2ui,t,s[100],ui"
+input/fields="block,counter,t,string,num"

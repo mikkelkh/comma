@@ -9,7 +9,7 @@ function handler()
     trap '' TERM INT HUP PIPE
     echo "$0: handle $1, kill $background_pid" >&2
     pstree -a -c -l -g -p $BASHPID >&2
-    kill -s TERM $background_pid
+    kill -TERM $background_pid
     wait $background_pid
     sleep 1
     echo "$0: finally exiting" >&2

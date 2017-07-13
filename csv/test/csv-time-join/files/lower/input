@@ -1,0 +1,4 @@
+input=../../stdin.csv
+bounding=../../bounding.csv
+options="--by-lower"
+input_type=file

@@ -1,0 +1,6 @@
+#python
+
+for n in range(number_of(test)):
+    expect test[n]/cut/status == 0
+    expect test[n]/shuffle/status == 0
+    expect test[n]/cmp/status == 0

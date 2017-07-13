@@ -92,6 +92,21 @@ export -f comma_options_has
 function comma_options_help() { return $(( ! ( $( comma_options_has '--help' $@ ) || $( comma_options_has '-h' $@ ) ) )) ; }
 export -f comma_options_help
 
+## @page comma_pretty_description comma_pretty_description
+# @description convenience function, pretty-prints the output of description function for usage help
+# usage: description | comma_pretty_description [arguments]
+# read stdin, write to stdout
+# @param offset the number of spaces to prepend
+# @param marging the right margin where to fold the output
+function comma_pretty_description()
+{
+    local offset=${1:-4}
+    local margin=${2:-120}
+    offset=$( printf "%${offset}s" '' )  # repeat ' ' offset times
+    fold -s -w $margin | sed --regexp-extended 's@^([^--])@  \1@' | sed "s/^/$offset/"
+}
+export -f comma_pretty_description
+
 ## @page comma_options_names comma_options_names
 # @description converts a standard comma description to a list of names
 # 
@@ -152,6 +167,8 @@ function comma_status_ok()
         for outcome_status_ok in $@ ; do
             (( outcome_status_ok == 0 || outcome_status_ok == comma_sigpipe_exit_status_ )) || return 1
         done
+        # shall we do this?
+        # return ${@: -1}  # propagate comma_sigpipe_exit_status_ in the last argument
     else
         comma_status_ok "$pipestatus_copy_status_ok" || return 1
     fi

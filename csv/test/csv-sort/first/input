@@ -1,0 +1,7 @@
+basics/first_line[0]="( echo 5,a ; echo 5,b ; echo 0,c ; echo 5,d ; echo 0,e ) | csv-sort --fields a --first | tr \'\\\n\' \';\'"
+basics/first_line[1]="( echo 6,a ; echo 5,b ; echo 0,c ; echo 5,d ; echo 0,e ) | csv-sort --fields a --first | tr \'\\\n\' \';\'"
+basics/first_line[2]="( echo ; echo ; echo 5,a ; echo 5,b ; echo 0,c ; echo 5,d ; echo 0,e ) | csv-sort --fields a --first | tr \'\\\n\' \';\'"
+basics/single_key="( echo 5,a ; echo 5,b ; echo 0,c ; echo 5,d ; echo 0,e ) | csv-sort --fields a --first | tr \'\\\n\' \';\'"
+basics/multiple_keys="( echo 5,a,0 ; echo 5,b,1 ; echo 0,c,0 ; echo 5,d,0 ; echo 0,e,0 ) | csv-sort --fields a,b --first | tr \'\\\n\' \';\'"
+block/single_key[0]="( echo 0,5,a ; echo 0,5,b ; echo 0,0,c ; echo 1,5,d ; echo 1,0,e ) | csv-sort --fields block,a --first | tr \'\\\n\' \';\'"
+id/single_key[0]="( echo 0,5,a ; echo 1,5,b ; echo 0,0,c ; echo 1,5,d ; echo 1,0,e ) | csv-sort --fields id,a --first | tr \'\\\n\' \';\'"

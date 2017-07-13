@@ -298,9 +298,9 @@ TEST( name_value, optional )
 {
     {
         struct_with_optional s = name_value::parser().get< struct_with_optional >( "a=1;b=2;nested/c=3;nested/d=4" );
-        EXPECT_TRUE( s.b );
-        EXPECT_TRUE( s.nested );
-        EXPECT_TRUE( s.nested->d );
+        EXPECT_TRUE( bool( s.b ) );
+        EXPECT_TRUE( bool( s.nested ) );
+        EXPECT_TRUE( bool( s.nested->d ) );
         EXPECT_EQ( s.a, 1 );
         EXPECT_EQ( *s.b, 2 );
         EXPECT_EQ( s.nested->c, 3 );
@@ -309,7 +309,7 @@ TEST( name_value, optional )
     {
         struct_with_optional s = name_value::parser().get< struct_with_optional >( "a=1;nested/c=3" );
         EXPECT_TRUE( !s.b );
-        EXPECT_TRUE( s.nested );
+        EXPECT_TRUE( bool( s.nested ) );
         EXPECT_TRUE( !s.nested->d );
         EXPECT_EQ( s.a, 1 );
         EXPECT_EQ( s.nested->c, 3 );
@@ -317,7 +317,7 @@ TEST( name_value, optional )
     {
         struct_with_optional s = name_value::parser( ';', '=', false ).get< struct_with_optional >( "a=1;c=3" );
         EXPECT_TRUE( !s.b );
-        EXPECT_TRUE( s.nested );
+        EXPECT_TRUE( bool( s.nested ) );
         EXPECT_TRUE( !s.nested->d );
         EXPECT_EQ( s.a, 1 );
         EXPECT_EQ( s.nested->c, 3 );

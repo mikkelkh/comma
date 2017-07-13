@@ -41,7 +41,6 @@
 #include <boost/optional.hpp>
 #include "../../application/command_line_options.h"
 #include "../../application/contact_info.h"
-#include "../../application/signal_flag.h"
 #include "../../base/types.h"
 #include "../../csv/format.h"
 
@@ -95,7 +94,6 @@ int main( int ac, char** av )
         }
         #endif
 
-        comma::signal_flag is_shutdown;
         if( binary )
         {
             boost::array< char, 65536 > buf;
@@ -103,7 +101,7 @@ int main( int ac, char** av )
             const char* end = begin + ( buf.size() / size ) * size;
             char* cur = begin;
             unsigned int offset = 0;
-            while( !is_shutdown && std::cin.good() && !std::cin.eof() )
+            while( std::cin.good() && !std::cin.eof() )
             {
                 if( offset >= size )
                 {
@@ -126,7 +124,7 @@ int main( int ac, char** av )
         }
         else
         {
-            while( !is_shutdown && std::cin.good() && !std::cin.eof() )
+            while( std::cin.good() && !std::cin.eof() )
             {
                 std::string line;
                 std::getline( std::cin, line );

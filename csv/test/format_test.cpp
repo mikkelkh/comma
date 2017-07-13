@@ -372,3 +372,27 @@ TEST( csv, unstructured_hash )
         EXPECT_EQ( value_t::hash()( v ), value_t::hash()( v ) );
     }
 }
+
+TEST( csv, expand )
+{
+    EXPECT_EQ( "", comma::csv::format( "" ).expanded_string() );
+    EXPECT_EQ( "d", comma::csv::format( "d" ).expanded_string() );
+    EXPECT_EQ( "i,i", comma::csv::format( "2i" ).expanded_string() );
+    EXPECT_EQ( "i,i,d,d,d,i,i", comma::csv::format( "2i,3d,2i" ).expanded_string() );
+    EXPECT_EQ( "s[10]", comma::csv::format( "s[10]" ).expanded_string() );
+    EXPECT_EQ( "s[10],s[5]", comma::csv::format( "s[10],s[5]" ).expanded_string() );
+    EXPECT_EQ( "s[10],s[10]", comma::csv::format( "s[10],s[10]" ).expanded_string() );
+    EXPECT_EQ( "i,f,f,f,s[10],f,f", comma::csv::format( "i,3f,s[10],2f" ).expanded_string() );
+}
+
+TEST( csv, collapse )
+{
+    EXPECT_EQ( "", comma::csv::format( "" ).collapsed_string() );
+    EXPECT_EQ( "d", comma::csv::format( "d" ).collapsed_string() );
+    EXPECT_EQ( "2i", comma::csv::format( "i,i" ).collapsed_string() );
+    EXPECT_EQ( "2i,3d,2i", comma::csv::format( "i,i,3d,i,i" ).collapsed_string() );
+    EXPECT_EQ( "s[10]", comma::csv::format( "s[10]" ).collapsed_string() );
+    EXPECT_EQ( "s[10],s[5]", comma::csv::format( "s[10],s[5]" ).collapsed_string() );
+    EXPECT_EQ( "s[10],s[10]", comma::csv::format( "s[10],s[10]" ).collapsed_string() );
+    EXPECT_EQ( "i,3f,s[10],2f", comma::csv::format( "i,f,f,f,s[10],f,f" ).collapsed_string() );
+}

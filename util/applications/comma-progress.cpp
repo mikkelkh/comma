@@ -91,8 +91,8 @@ static void usage( bool verbose=false )
     std::cerr << std::endl;
     std::cerr << "cat progress.csv | " << name() << " [<options>] > stat.csv" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "Example: cat progress.csv | comma-progress --elapsed | comma-progress --ratio run_all/build_flight_plan"  << std::endl;
-    std::cerr << "         In this example, every 'ratio' value is compared against time of run_all/build_flight_plan, instead" << std::endl;
+    std::cerr << "Example: cat progress.csv | comma-progress --elapsed | comma-progress --ratio run_all/application"  << std::endl;
+    std::cerr << "         In this example, every 'ratio' value is compared against time of run_all/application, instead" << std::endl;
     std::cerr << "         of total time." << std::endl;
     std::cerr << std::endl;
     std::cerr << "modes" << std::endl;
@@ -105,7 +105,7 @@ static void usage( bool verbose=false )
     std::cerr << "                 Output format is 'path/elapsed=<duration in second>'" << std::endl;
     std::cerr << "    --sum [--mean] [--count] [--ratio ] [-P|--percentage] " << std::endl;
     std::cerr << "                 Outputs path value with summed 'elapsed' time, taking input data from --elapsed mode." << std::endl;
-    std::cerr << "                 Elapsed duration is duration sum of run with the same <path> key e.g. where plan-fuel/flight-prm called multiple times." << std::endl;
+    std::cerr << "                 Elapsed duration is duration sum of runs with the same <path> key, where one application was called multiple times." << std::endl;
     std::cerr << "                 Output format is '<path>/elapsed=<duration in second>'" << std::endl;
     std::cerr << "                 --mean  adds '<path>/mean=< mean duration in second >' for items that ran more than once - duplicated elapsed path/keys." << std::endl;
     std::cerr << "                 --mean  adds '<path>/count=< occurances of <path>/elapsed >', where mean=( elapsed / count )." << std::endl;
@@ -184,7 +184,7 @@ void merge_elapsed( boost::property_tree::ptree& tree,
     using boost::property_tree::ptree;
     
     std::string line;
-    // counts the number of times a key is used for 'mean' value calculation e.g. for flight-prm
+    // counts the number of times a key is used for 'mean' value calculation
     boost::unordered_map< std::string, int > key_counts;    
     while( std::cin.good() && !std::cin.eof() )
     {
@@ -246,22 +246,20 @@ namespace impl_ {
 /// Take input data in the form of impl_::logs, and convert them into path value structure
 /// Where path is the tree/nested path
 // Example input
-//     20140226T162515.444639,update-weight,begin
-//     20140226T162515.450169,update-weight,end
-//     20140226T162515.485293,plan-fuel,begin
-//     20140226T162515.553752,flight-prm,begin
-//     20140226T162519.128530,flight-prm,end
-//     20140226T162519.133253,short_sector,begin
-//     20140226T162519.170131,short_sector,end
-//     20140226T162519.279924,update-weight,begin
-//     20140226T162519.292069,update-weight,end
-//     20140226T162519.344238,flight-prm,begin
-//     20140226T162522.012378,flight-prm,end
-//     20140226T162522.016931,short_sector,begin
-//     20140226T162522.053642,short_sector,end
-//     20140226T162522.160048,update-weight,begin
-//     20140226T162522.172084,update-weight,end
-//     20140226T162522.227812,plan-fuel,end
+//     20140226T162515.444639,app_a,begin
+//     20140226T162515.450169,app_a,end
+//     20140226T162515.485293,plan_a,begin
+//     20140226T162515.553752,app_b,begin
+//     20140226T162519.128530,app_b,end
+//     20140226T162519.133253,app_c,begin
+//     20140226T162519.170131,app_c,end
+//     20140226T162519.279924,app_a,begin
+//     20140226T162519.292069,app_a,end
+//     20140226T162519.344238,app_b,begin
+//     20140226T162522.012378,app_b,end
+//     20140226T162522.160048,app_a,begin
+//     20140226T162522.172084,app_a,end
+//     20140226T162522.227812,plan_a,end
 template < typename T, typename L, typename O >
 void process_begin_end( L get_log, O output )
 {

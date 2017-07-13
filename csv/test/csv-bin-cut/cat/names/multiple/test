@@ -1,0 +1,52 @@
+#!/bin/bash
+
+scriptname=$( basename "$0" )
+
+source $( which comma-application-util ) || { echo "$scriptname: cannot source 'comma-application-util'" >&2; exit 1; }
+
+output_dir="output"
+mkdir -p "$output_dir" || { echo "$scriptname: cannot create directory '$output_dir'" >&2; exit 1; }
+
+comma_path_value_to_var
+
+cd "$output_dir"
+
+if [[ -n "$input_files_direct" ]] ; then
+    all_files=$( echo "$input_files_direct" | sed "s@-@$input_files_stdin@" )
+else
+    all_files=$input_files_stdin
+fi
+
+cmd="--binary=2ui,t,s[100],ui --fields=block,counter,t,string,num --output-fields=t"
+subdir=0
+mkdir -p "$subdir" || { echo "$scriptname: cannot create directory '$output_dir/$subdir'" >&2; exit 1; }
+cat $input_files_stdin | csv-bin-cut $input_files_direct $cmd > "$subdir/new.bin"
+echo "test[$subdir]/cut/status=$?"
+cat $all_files | csv-shuffle $cmd > "$subdir/old.bin"
+echo "test[$subdir]/shuffle/status=$?"
+cmp "$subdir/new.bin" "$subdir/old.bin" > "$subdir/cmp.log"
+echo "test[$subdir]/cmp/status=$?"
+
+cmd="--binary=2ui,t,s[100],ui --fields=block,counter,t,string,num --output-fields=block,t,num"
+record=$( csv-size "2ui,t,s[100],ui" )
+for count in nan -1 0 4 15 ; do
+    for skip in 6 12 23 ; do
+        (( ++subdir ))
+        mkdir -p "$subdir" || { echo "$scriptname: cannot create directory '$output_dir/$subdir'" >&2; exit 1; }
+        car="cat"
+        cdr="tail -c +$(( record * skip + 1 ))"
+        count_option=
+        [[ "$count" == "nan" ]] || {
+            count_option="--count=$count"
+            (( count >= 0 )) && car="head -c $(( record * count ))"
+        }
+        cat $input_files_stdin | csv-bin-cut $input_files_direct $cmd --skip=$skip $count_option > "$subdir/new.bin"
+        echo "test[$subdir]/cut/status=$?"
+        cat $all_files | $cdr | $car | csv-shuffle $cmd > "$subdir/old.bin"
+        echo "test[$subdir]/shuffle/status=$?"
+        cmp "$subdir/new.bin" "$subdir/old.bin" > "$subdir/cmp.log"
+        echo "test[$subdir]/cmp/status=$?"
+        echo "test[$subdir]/skip=$skip"
+        echo "test[$subdir]/count=$count"
+    done
+done

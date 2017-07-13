@@ -41,7 +41,6 @@
 #include "../../base/exception.h"
 #include "../../application/contact_info.h"
 #include "../../application/command_line_options.h"
-#include "../../application/signal_flag.h"
 #include "../../name_value/ptree.h"
 #include "../../name_value/serialize.h"
 #include "../../xpath/xpath.h"
@@ -284,12 +283,11 @@ int main( int ac, char** av )
         indices_mode = options.exists( "--no-brackets" ) ? comma::property_tree::without_brackets : comma::property_tree::with_brackets;
         if( linewise )
         {
-            comma::signal_flag is_shutdown;
             while( std::cout.good() )
             {
                 std::string line;
                 std::getline( std::cin, line );
-                if( is_shutdown || !std::cin.good() || std::cin.eof() ) { break; }
+                if( !std::cin.good() || std::cin.eof() ) { break; }
                 std::istringstream iss( line );
                 boost::property_tree::ptree ptree;
                 input( iss, ptree );

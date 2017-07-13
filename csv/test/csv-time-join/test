@@ -1,0 +1,23 @@
+#!/bin/bash
+
+source $( type -p comma-name-value-util )
+
+# Strip leading and trailing white-space, comments and blank lines
+test_input=$( sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | sed -n '/^[[:alnum:]]/p' )
+comma_path_value_to_var < <( grep "=" <<< "$test_input" )
+
+input=$( readlink -e $input )
+bounding=$( readlink -e $bounding )
+
+output_dir=output
+
+[[ -d $output_dir ]] || mkdir $output_dir
+cd $output_dir
+
+cat $input \
+    | if [[ $input_type == "file" ]]; then
+          csv-time-join $bounding $options --verbose
+      else
+          csv-play | csv-time-join <( sleep 0.01; cat $bounding | csv-play ) $options --verbose
+      fi \
+    | name-value-from-csv -f line -d : -n -p output

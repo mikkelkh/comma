@@ -432,8 +432,32 @@ std::string format::expanded_string() const
 
 std::string format::collapsed_string() const
 {
-    COMMA_THROW( comma::exception, "format::collapsed(): not implemented" );
-    return "";
+    format result;
+
+    if( elements_.size() >= 1 )
+    {
+        element last_element( elements_[ 0 ] );
+        std::size_t count = elements_[ 0 ].count;
+        for ( unsigned int i = 1; i < elements_.size(); ++i )
+        {
+            types_enum type = elements_[ i ].type;
+            if( type != last_element.type || last_element.type == format::fixed_string )
+            {
+                std::ostringstream new_element;
+                if( count > 1 ) { new_element << count; }
+                new_element << format::to_format( last_element.type, last_element.size );
+                result += new_element.str();
+                last_element = elements_[ i ];
+                count = 0;
+            }
+            count += elements_[ i ].count;
+        }
+        std::ostringstream new_element;
+        if( count > 1 ) { new_element << count; }
+        new_element << format::to_format( last_element.type, last_element.size );
+        result += new_element.str();
+    }
+    return result.string();
 }
 
 // formats for not-a-date-time, +infinity, -infinity

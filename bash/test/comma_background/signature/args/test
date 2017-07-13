@@ -24,7 +24,7 @@ function handler()
     # killed by a wrong signal and the test would fail; however, such double-signals
     # shall happen only when tests are terminated (^C) at exactly this moment, and therefore,
     # cannot pass anyway
-    builtin kill -s $1 $BASHPID
+    builtin kill -$1 $BASHPID
 }
 export -f handler
 

@@ -22,12 +22,12 @@ function handler()
     trap '' SIGINT SIGTERM
     echo "worker terminated in $BASHPID, attempt clean-up..." >&2
     echo "first terminate the app and let it clean up by itself..." >&2
-    kill -s TERM -- $apid
+    kill -TERM -- $apid
     wait
     report_processes >&2
     echo "terminate all processes in group $apgid" >&2
     # this will kill the worker, nothing to do here
-    kill -s TERM -- -$apgid
+    kill -TERM -- -$apgid
     sleep 2  # cannot wait, as after the early death of the broken main process all its subprocesses are parented to init
     report_processes >&2
     echo "$name::worker terminated with simulated error" >&2
@@ -62,7 +62,7 @@ function run_once()
     # Send a normal signal to the app, it is the app job
     # to terminate all its child processes
     echo "Now terminating..." >> "$log"
-    kill -s TERM -- $wpid >> "$log"
+    kill -TERM -- $wpid >> "$log"
 
     wait $wpid
     rv=$?

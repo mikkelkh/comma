@@ -37,6 +37,8 @@
 [[ -z "$comma_test_util_include_guard_" ]] || return 0
 readonly comma_test_util_include_guard_=1
 
+source $( type -p comma-name-value-util )
+
 # a helper to write tests in the comma-test-run style
 #
 # take line by line on stdin: <test name>="<command>"
@@ -78,7 +80,7 @@ function comma_test_commands()
         value="${value/#\"}"
         value="${value/%\"}"
         output=$( eval "$value" )
-        status="$?"
+        status=$?       # eval and bash -c both returns one error code, PIPESTATUS has only one value
         if [[ -n "$fields" ]]; then
             echo "$output" | name-value-from-csv "$fields" --prefix "$key/output"
         else
@@ -87,6 +89,69 @@ function comma_test_commands()
         echo "$key/status=$status"
     done < <( grep '=' ; grep -v '^#' )
 }
+
+# run interactive test, something like
+# > cat input
+# 
+# default/instruction=
+# default/expected="a line of points smoothly transitioning from cyan to magenta"
+# default/command="( echo 0,0,0 ; echo 1,1,0.2 ; echo 2,2,0.4 ; echo 3,3,0.6 ; echo 4,4,0.8 ; echo 5,5,1 ) | view-points --fields=label,x,scalar --weight=10"
+# 
+# option[0]/instruction=
+# option[0]/expected="a line of points smoothly transitioning from cyan to magenta"
+# option[0]/command="( echo 0,0,0 ; echo 1,1,0.1 ; echo 2,2,0.2 ; echo 3,3,0.3 ; echo 4,4,0.4 ; echo 5,5,0.5 ) | view-points --fields=label,x,scalar --weight=10 --colour=0:0.5"
+#
+# > cat test
+# #!/bin/bash
+#
+# source $( type -p comma-test-util )
+#
+# comma_test_interactive_commands
+#
+# see for an example: e.g. snark/graphics/applications/test/view-points/colour/scalar/options
+function comma_test_interactive_commands()
+{
+    (
+        function comma_test_interactive_test_case()
+        {
+            local name=$1
+            local command instruction expected dialog
+            eval $( comma_path_value_mangle | sed 's/^/local /' )
+            [[ -n "$command" ]] || { echo "$name/command not specified" >&2 ; echo "$name/status=1"; return 1 ; }
+            eval "$command" &
+            local eval_pid=$!
+            [[ $instruction ]] && dialog="$name: $instruction\n\n"
+            dialog+="do you see $expected?"
+            zenity --question --text="$dialog"
+            result=$?
+            echo "$name/status=$result"
+            kill $( pgrep -P $eval_pid )
+            wait $eval_pid
+            return $result
+        }
+
+        local test_case
+        local test_name
+        local path
+        while read line ; do
+            [[ "$line" =~ ^# ]] && continue
+            local p=$( cut -d= -f1 <<< "$line" )
+            [[ -n "$p" ]] || continue
+            local n=$( dirname $p )
+            if [[ "$n" != "$test_name" ]] ; then
+                [[ -z "$test_name" ]] || comma_test_interactive_test_case $test_name <<< "$test_case"
+                test_name=$n
+                test_case=
+            fi
+            n=${n//[/\\[}
+            n=${n//]/\\]}
+            test_case=$( echo "$test_case" ; sed "s#^$n/##" <<< "$line" )
+        done
+        if [[ -n "$test_case" ]] ; then comma_test_interactive_test_case $test_name <<< "$test_case" ; fi
+        return $?
+    )
+}
+
 
 # the tmp directory cleanup for comma_test_run_tarball
 function comma_test_run_tarball_cleanup()

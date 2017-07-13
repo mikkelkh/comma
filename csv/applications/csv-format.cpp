@@ -42,7 +42,7 @@ static const char *app_name = "csv-format";
 static void usage()
 {
     std::cerr << std::endl;
-    std::cerr << "Usage: echo \"3f,2f,d\" | " << app_name << " (expand|collapse)" << std::endl;
+    std::cerr << "Usage: echo \"3f,2f,d\" | " << app_name << " [options] (expand|collapse|count|repeat)" << std::endl;
     std::cerr << std::endl;
     std::cerr << "Perform various operations on format strings." << std::endl;
     std::cerr << std::endl;
@@ -50,6 +50,11 @@ static void usage()
     std::cerr << "    expand: output fully expand format, e.g. 2i,3f -> i,i,f,f,f" << std::endl;
     std::cerr << "    collapse: output minimal format, e.g. i,i,f,f,f -> 2i,3f" << std::endl;
     std::cerr << "    count: output number of fields, e.g. 2i,3f -> 5" << std::endl;
+    std::cerr << "    repeat: replicate the format n times, e.g. 2i,3f --count 2 -> 2i,3f,2i,3f" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "Options:" << std::endl;
+    std::cerr << "    repeat:" << std::endl;
+    std::cerr << "        --count=n: replicate the format n times" << std::endl;
     std::cerr << std::endl;
     std::cerr << comma::contact_info << std::endl;
     std::cerr << std::endl;
@@ -74,6 +79,14 @@ int main( int ac, char** av )
             if( operation == "expand" )        { std::cout << format.expanded_string() << std::endl; }
             else if( operation == "collapse" ) { std::cout << format.collapsed_string() << std::endl; }
             else if( operation == "count" ) { std::cout << format.count() << std::endl; }
+            else if( operation == "repeat" ) {
+                const unsigned int count = options.value< unsigned int >( "--count" );
+                if ( count ) {
+                    std::cout << format.string();
+                    for ( unsigned int i = 0; i < count - 1; ++i ) { std::cout << "," << format.string(); }
+                    std::cout << std::endl;
+                }
+            }
             else { std::cerr << app_name << ": unknown operation \"" << operation << "\"" << std::endl; return 1; }
         }
         return 0;

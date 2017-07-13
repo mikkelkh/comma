@@ -219,8 +219,8 @@ TEST( csv, ascii_optional_element )
         EXPECT_EQ( comma::join( comma::csv::names( s ), ',' ), "a,z,nested/x,nested/y" );
         comma::csv::ascii< comma::csv::ascii_test::test_struct > ascii;
         ascii.get( s, "1,2,3,4" ); // TODO fails on windows
-        EXPECT_TRUE( s.z );
-        EXPECT_TRUE( s.nested );
+        EXPECT_TRUE( bool( s.z ) );
+        EXPECT_TRUE( bool( s.nested ) );
         EXPECT_EQ( s.a, 1 );
         EXPECT_EQ( *s.z, 2 );
         EXPECT_EQ( s.nested->x, 3 );
@@ -230,7 +230,7 @@ TEST( csv, ascii_optional_element )
         comma::csv::ascii_test::test_struct s;
         comma::csv::ascii< comma::csv::ascii_test::test_struct > ascii( ",,z" );
         ascii.get( s, "1,2,3" );
-        EXPECT_TRUE( s.z );
+        EXPECT_TRUE( bool( s.z ) );
         EXPECT_FALSE( s.nested );
         EXPECT_EQ( *s.z, 3 );
     }
@@ -238,8 +238,8 @@ TEST( csv, ascii_optional_element )
         comma::csv::ascii_test::test_struct s;
         comma::csv::ascii< comma::csv::ascii_test::test_struct > ascii( "nested,z" );
         ascii.get( s, "1,2,3" );
-        EXPECT_TRUE( s.z );
-        EXPECT_TRUE( s.nested );
+        EXPECT_TRUE( bool( s.z ) );
+        EXPECT_TRUE( bool( s.nested ) );
         EXPECT_EQ( *s.z, 3 );
         EXPECT_EQ( s.nested->x, 1 );
         EXPECT_EQ( s.nested->y, 2 );
@@ -248,8 +248,8 @@ TEST( csv, ascii_optional_element )
         comma::csv::ascii_test::test_struct s;
         comma::csv::ascii< comma::csv::ascii_test::test_struct > ascii( ",nested" );
         ascii.get( s, "1,2,3" );
-        EXPECT_FALSE( s.z );
-        EXPECT_TRUE( s.nested );
+        EXPECT_FALSE( bool( s.z ) );
+        EXPECT_TRUE( bool( s.nested ) );
         EXPECT_EQ( s.nested->x, 2 );
         EXPECT_EQ( s.nested->y, 3 );
     }
@@ -257,8 +257,8 @@ TEST( csv, ascii_optional_element )
         comma::csv::ascii_test::test_struct s;
         comma::csv::ascii< comma::csv::ascii_test::test_struct > ascii( "nested,,a" );
         ascii.get( s, "1,2,3,4" );
-        EXPECT_FALSE( s.z );
-        EXPECT_TRUE( s.nested );
+        EXPECT_FALSE( bool( s.z ) );
+        EXPECT_TRUE( bool( s.nested ) );
         EXPECT_EQ( s.nested->x, 1 );
         EXPECT_EQ( s.nested->y, 2 );
         EXPECT_EQ( s.a, 4 );
@@ -267,8 +267,8 @@ TEST( csv, ascii_optional_element )
         comma::csv::ascii_test::test_struct s;
         comma::csv::ascii< comma::csv::ascii_test::test_struct > ascii( ",x,y,a", ',', false );
         ascii.get( s, "1,2,3,4" );
-        EXPECT_FALSE( s.z );
-        EXPECT_TRUE( s.nested );
+        EXPECT_FALSE( bool( s.z ) );
+        EXPECT_TRUE( bool( s.nested ) );
         EXPECT_EQ( s.nested->x, 2 );
         EXPECT_EQ( s.nested->y, 3 );
         EXPECT_EQ( s.a, 4 );
@@ -278,8 +278,8 @@ TEST( csv, ascii_optional_element )
         {
             comma::csv::ascii_test::test_struct s;
             ascii.get( s, "1,2,3,4" );
-            EXPECT_TRUE( s.z );
-            EXPECT_TRUE( s.nested );
+            EXPECT_TRUE( bool( s.z ) );
+            EXPECT_TRUE( bool( s.nested ) );
             EXPECT_EQ( s.z, 2 );
             EXPECT_EQ( s.nested->x, 3 );
             EXPECT_EQ( s.nested->y, 4 );

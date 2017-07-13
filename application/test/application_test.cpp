@@ -30,7 +30,6 @@
 #include <limits>
 #include <gtest/gtest.h>
 #include "../command_line_options.h"
-#include "../signal_flag.h"
 
 TEST( application, command_line_options )
 {

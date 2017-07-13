@@ -33,7 +33,6 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "../../application/command_line_options.h"
 #include "../../application/contact_info.h"
-#include "../../application/signal_flag.h"
 #include "../../csv/options.h"
 #include "../../csv/stream.h"
 #include "../../io/select.h"
@@ -215,13 +214,12 @@ int main( int ac, char** av )
 
         timeout = boost::posix_time::microseconds( options.value< double >( "--timeout,-t" ) * 1000000 );
         if( options.exists( "--period" )) { period = boost::posix_time::microseconds( options.value< double >( "--period" ) * 1000000 ); }
-        comma::signal_flag is_shutdown;
         bool end_of_stream = false;
         std::string line;
         std::ios_base::sync_with_stdio( false ); // unsync to make rdbuf()->in_avail() working
         std::cin.tie( NULL ); // std::cin is tied to std::cout by default
         bool repeating = false;
-        while( !is_shutdown && is->good() && !end_of_stream )
+        while( is->good() && !end_of_stream )
         {
             select.wait( repeating ? *period : timeout );
             repeating = true;
@@ -264,7 +262,7 @@ int main( int ac, char** av )
                 end_of_stream = repeating = false;
             }
 
-            if( is_shutdown || !is->good() || end_of_stream ) { break; }
+            if( !is->good() || end_of_stream ) { break; }
 
             if( repeating )
             {

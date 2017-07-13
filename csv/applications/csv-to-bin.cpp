@@ -40,7 +40,6 @@
 #include <iostream>
 #include "../../application/contact_info.h"
 #include "../../application/command_line_options.h"
-#include "../../application/signal_flag.h"
 #include "../../csv/format.h"
 #include "../../string/string.h"
 
@@ -73,7 +72,6 @@ int main( int ac, char** av )
     line.reserve( 4000 );
     try
     {
-        signal_flag is_shutdown;
         command_line_options options( ac, av, usage );
         char delimiter = options.value( "--delimiter", ',' );
         bool flush = options.exists( "--flush" );
@@ -81,7 +79,6 @@ int main( int ac, char** av )
         //{ ProfilerStart( "csv-to-bin.prof" );
         while( std::cin.good() && !std::cin.eof() )
         {
-            if( is_shutdown ) { std::cerr << "csv-to-bin: interrupted by signal" << std::endl; return -1; }
             std::getline( std::cin, line );
             if( !line.empty() && *line.rbegin() == '\r' ) { line = line.substr( 0, line.length() - 1 ); } // windows... sigh...
             if( !line.empty() ) { format.csv_to_bin( std::cout, line, delimiter, flush ); }

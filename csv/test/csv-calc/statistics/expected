@@ -1,13 +1,13 @@
 # expected results match MATLAB and Excel
 
-output[0]/mean=3.2 +/- 0.0001
-output[0]/var=2.96 +/- 0.0001
-output[0]/var_sample=3.7 +/- 0.0001
-output[0]/stddev=1.72046505341 +/- 0.0001
-output[0]/stddev_sample=1.92353840617 +/- 0.0001
-output[0]/skew=0.395870337344 +/- 0.0001
-output[0]/skew_sample=0.590128656384 +/- 0.0001
-output[0]/kurtosis=1.99452154858 +/- 0.0001
-output[0]/kurtosis_sample=2.9780861943 +/- 0.0001
-output[0]/kurtosis_excess=-1.00547845142 +/- 0.0001
-output[0]/kurtosis_sample_excess=-0.0219138056976 +/- 0.0001
+output/ascii[0]/a_mean=3.2 +/- 0.0001
+output/ascii[0]/a_var=2.96 +/- 0.0001
+output/ascii[0]/a_var_sample=3.7 +/- 0.0001
+output/ascii[0]/a_stddev=1.72046505341 +/- 0.0001
+output/ascii[0]/a_stddev_sample=1.92353840617 +/- 0.0001
+output/ascii[0]/a_skew=0.395870337344 +/- 0.0001
+output/ascii[0]/a_skew_sample=0.590128656384 +/- 0.0001
+output/ascii[0]/a_kurtosis=1.99452154858 +/- 0.0001
+output/ascii[0]/a_kurtosis_sample=2.9780861943 +/- 0.0001
+output/ascii[0]/a_kurtosis_excess=-1.00547845142 +/- 0.0001
+output/ascii[0]/a_kurtosis_sample_excess=-0.0219138056976 +/- 0.0001

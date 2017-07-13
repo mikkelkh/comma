@@ -1,0 +1,3 @@
+command/line="2ui,t,s[100],ui --fields=3"
+files/stdin="../../../data/file0.bin"
+files/direct=""

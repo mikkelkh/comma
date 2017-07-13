@@ -43,7 +43,6 @@
 #include <boost/optional.hpp>
 #include "../../application/command_line_options.h"
 #include "../../application/contact_info.h"
-#include "../../application/signal_flag.h"
 #include "../../base/types.h"
 
 static void usage( bool )
@@ -129,7 +128,6 @@ static typename Crc::value_type crc_( const char* buf, std::size_t size )
 template < typename Crc >
 static bool run_()
 {
-    comma::signal_flag is_shutdown;
     if( binary )
     {
         #ifdef WIN32
@@ -145,7 +143,7 @@ static bool run_()
         std::size_t recovered_count = 0;
         std::size_t recovered_byte_count = 0;
         std::vector< char > recovery_buffer( recover_after * size );
-        while( !is_shutdown && std::cin.good() && !std::cin.eof() )
+        while( std::cin.good() && !std::cin.eof() )
         {
             if( offset >= size )
             {
@@ -210,7 +208,7 @@ static bool run_()
     else
     {
         std::string line;
-        while( !is_shutdown && std::cin.good() && !std::cin.eof() )
+        while( std::cin.good() && !std::cin.eof() )
         {
             std::getline( std::cin, line );
             if( line.empty() ) { continue; }

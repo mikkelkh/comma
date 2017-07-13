@@ -42,7 +42,6 @@
 #include <boost/graph/graph_concepts.hpp>
 #include "../../application/command_line_options.h"
 #include "../../application/contact_info.h"
-#include "../../application/signal_flag.h"
 #include "../../base/types.h"
 #include "../../csv/stream.h"
 #include "../../csv/impl/unstructured.h"
@@ -211,7 +210,6 @@ static comma::csv::options csv;
 static boost::scoped_ptr< comma::io::istream > filter_transport;
 static std::string filter_line;
 static bool has_filter;
-static comma::signal_flag is_shutdown;
 static comma::uint32 block = 0;
 static bool last_block = false;
 static bool last_only = false;
@@ -226,7 +224,7 @@ static map_t::type values;
 
 static void output_unmatched_all()
 {
-    if( is_shutdown || matched_only || !filter_transport ) { return; }
+    if( matched_only || !filter_transport ) { return; }
     std::string s;
     for( std::getline( **filter_transport, s ); ( **filter_transport ).good() && !( **filter_transport ).eof(); std::getline( **filter_transport, s ) )
     {
@@ -236,7 +234,7 @@ static void output_unmatched_all()
 
 static void output_and_clear( map_t::type& map, bool do_output, comma::csv::output_stream< input_t >* ostream = NULL )
 {
-    if( do_output && !is_shutdown )
+    if( do_output )
     {
         typedef std::map< unsigned int, const map_t::value_type* > output_map_t;
         output_map_t m;
@@ -274,7 +272,7 @@ static void read_filter_block()
     block = last->block;
     filter_map.clear();
     unsigned int count = 0;
-    while( last->block == block && !is_shutdown )
+    while( last->block == block )
     {
         std::string s;
         if( filter_line.empty() ) // super quick and dirty
@@ -469,7 +467,7 @@ int main( int ac, char** av )
         }
         read_filter_block();
         if( !first_line.empty() ) { update( comma::csv::ascii< input_t >( csv, default_input ).get( first_line ), istream, ostream, first_line ); }
-        while( !is_shutdown && ( istream.ready() || ( std::cin.good() && !std::cin.eof() ) ) )
+        while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
         {
             const input_t* p = istream.read();
             if( !p ) { break; }

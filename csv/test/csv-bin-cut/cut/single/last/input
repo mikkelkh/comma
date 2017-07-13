@@ -1,0 +1,3 @@
+data/bin="../../../data/file0.bin"
+data/json="../../../data/file0.json"
+output/fields=5

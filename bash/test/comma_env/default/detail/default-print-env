@@ -2,7 +2,7 @@
 
 function names_only()
 {
-    awk -F '=' '! /^[0-9A-Z_a-z]+=/ {exit} {print $1}'
+    gawk -F '=' '! /^[0-9A-Z_a-z]+=/ {exit} {print $1}'
 }
 
 # assume a reasonably empty environment

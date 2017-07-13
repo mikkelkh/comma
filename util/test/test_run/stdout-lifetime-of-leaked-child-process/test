@@ -73,7 +73,7 @@ $0 --operate-as-child &
 pid=$!
 sleep 7
 echo 'main/slept=1'
-kill -s SIGTERM $pid
+kill -TERM $pid
 sleep 1
 # if not for this wait, stdout.log is garbled
 wait

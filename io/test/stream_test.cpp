@@ -120,7 +120,7 @@ TEST( io, local_stream )
         EXPECT_TRUE( !boost::asio::local::stream_protocol::iostream( endpoint ) );
         boost::asio::io_service service;
         boost::asio::local::stream_protocol::acceptor acceptor( service, endpoint );
-        EXPECT_TRUE( boost::asio::local::stream_protocol::iostream( endpoint ) );
+        EXPECT_TRUE( bool( boost::asio::local::stream_protocol::iostream( endpoint ) ) );
         comma::io::istream istream( "./test.localsocket" );
         comma::io::ostream ostream( "./test.localsocket" );
         istream.close();

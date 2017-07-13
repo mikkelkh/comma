@@ -2,9 +2,22 @@
 
 source $( type -p comma-application-util )
 
-set -x
-
 comma_path_value_to_var < <( cat )
+calc_operation="csv-calc $operation --fields=$fields --format=$format"
 eval "$input_cmd" \
-    | csv-calc $operation $options \
-    | name-value-from-csv --fields=$fields --prefix=output --line-number | tr -d '"'
+    | $calc_operation \
+    | name-value-from-csv --fields=$($calc_operation --output-fields | sed 's#/#_#g' ) --prefix=output/ascii --line-number | tr -d '"'
+
+eval "$input_cmd" | csv-to-bin $format \
+    | $calc_operation --binary=$format | csv-from-bin $($calc_operation --output-format) \
+    | name-value-from-csv --fields=$($calc_operation --output-fields | sed 's#/#_#g' ) --prefix=output/binary --line-number | tr -d '"'
+    
+eval "$input_cmd" \
+    | $calc_operation --append \
+    | name-value-from-csv --fields=$fields,$($calc_operation --output-fields --append | sed 's#/#_#g' ) --prefix=output/append --line-number | tr -d '"'
+    
+eval "$input_cmd" | csv-to-bin $format \
+    | $calc_operation --binary=$format --append | csv-from-bin $format,$($calc_operation --output-format) \
+    | name-value-from-csv --fields=$fields,$($calc_operation --output-fields --append | sed 's#/#_#g' ) --prefix=output/binary/append --line-number | tr -d '"'
+
+    

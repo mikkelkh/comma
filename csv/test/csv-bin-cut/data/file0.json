@@ -1,0 +1,4 @@
+{
+    "binary": "ui,ui,t,s[100],ui",
+    "fields": "block,counter,t,string,num"
+}

@@ -109,7 +109,7 @@ for pipe in $pipes ; do
     echo "$spawn_trigger" > "$pipe"
 done
 
-[[ "$do_kill" == "true" ]] && kill -s INT $BASHPID
+[[ "$do_kill" == "true" ]] && kill -INT $BASHPID
 
 wait $child_pids
 echo "normal exit" >&2

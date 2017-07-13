@@ -38,7 +38,7 @@ default_path="/usr/local/bin"
 function description()
 {
     cat <<EOF
---output,-o=[<type>]; output type - e.g. svg, png, dot
+--output,-o=[<type>]; output type - e.g. svg, png, dot, csv
 --path,-p=<path>; default=$default_path; path to scripts
 EOF
 }
@@ -104,15 +104,16 @@ function load_options
 trap bye EXIT
 
 load_options $@
+[[ "$options_output" == "csv" ]] || dot_output="$options_output"
 
-if [[ $options_output && $options_output != "dot" ]]; then
+if [[ $dot_output && $dot_output != "dot" ]]; then
     type -p dot > /dev/null || {
         echo "$basename requires graphviz"
         echo "Install on Ubuntu with:"
         echo "$ sudo apt-get install graphviz"
         exit
     }
-    output_fn="dot -T$options_output"
+    output_fn="dot -T$dot_output"
 else
     output_fn="cat"
 fi
@@ -127,7 +128,7 @@ todo=${args:-$all_apps}
 echo $all_apps | tr ' ' '\n' > $apps_in_dir
 
 (
-    [[ $options_output ]] && echo "digraph callgraph {"
+    [[ $dot_output ]] && echo "digraph callgraph {"
 
     curr_app=$( echo $todo | cut -f1 -d' ' )
     todo=$( echo $todo | cut -f2- -d' ' -s )
@@ -135,7 +136,7 @@ echo $all_apps | tr ' ' '\n' > $apps_in_dir
     while [[ $curr_app ]]; do
         node=$( echo $curr_app | tr '.-' '_' )
         if ! echo $done | tr ".-" "_" | egrep -q "\b$node\b"; then
-            [[ $options_output ]] && echo -e "\t$node [label=\"$curr_app\"]"
+            [[ $dot_output ]] && echo -e "\t$node [label=\"$curr_app\"]"
             fq_curr_app="$options_path/$curr_app"
             if file -b $fq_curr_app | grep -q text; then
                 sed -r -f - <<-EOF $fq_curr_app | sort -u > $words_in_file
@@ -148,14 +149,10 @@ echo $all_apps | tr ' ' '\n' > $apps_in_dir
                 for f in $( comm -12 $apps_in_dir $words_in_file ); do
                     if [[ $f != $curr_app ]]; then
                         tgt_node=$( echo $f | tr '-' '_' )
-                        if ! echo $todo | tr ".-" "_" | egrep -q "\b$tgt_node\b"; then
-                            todo="$todo $f"
-                        fi
-                        if [[ $options_output ]]; then
-                            echo -e "\t$node -> $tgt_node"
-                        else
-                            echo "$curr_app -> $f"
-                        fi
+                        if ! echo $todo | tr ".-" "_" | egrep -q "\b$tgt_node\b"; then todo="$todo $f" ; fi
+                        if [[ $dot_output ]]; then echo -e "\t$node -> $tgt_node"
+                        elif [[ "$options_output" == "csv" ]] ; then echo "$node,$tgt_node"
+                        else echo "$curr_app -> $f" ; fi
                     fi
                 done
             fi
@@ -165,5 +162,5 @@ echo $all_apps | tr ' ' '\n' > $apps_in_dir
         todo=$( echo $todo | cut -f2- -d' ' -s )
     done
 
-    [[ $options_output ]] && echo "}"
+    [[ $dot_output ]] && echo "}"
 ) | $output_fn

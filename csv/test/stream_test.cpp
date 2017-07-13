@@ -46,6 +46,11 @@ struct test_struct
     test_struct( comma::uint32 x, comma::uint32 y ) : x( x ), y( y ) {}
 };
 
+struct test_container
+{
+    std::vector< int > vector;
+};
+
 } } } // namespace comma { namespace csv { namespace test {
 
 namespace comma { namespace visiting {
@@ -67,7 +72,52 @@ template <> struct traits< comma::csv::stream_test::test_struct >
     }    
 };
 
+template <> struct traits< comma::csv::stream_test::test_container >
+{
+    template < typename Key, class Visitor >
+    static void visit( const Key&, const comma::csv::stream_test::test_container& p, Visitor& v )
+    {
+        v.apply( "vector", p.vector );
+    }
+
+    template < typename Key, class Visitor >
+    static void visit( const Key&, comma::csv::stream_test::test_container& p, Visitor& v )
+    {
+        v.apply( "vector", p.vector );
+    }
+};
+
 } } // namespace comma { namespace visiting {
+
+namespace comma { namespace csv { namespace stream_test {
+
+TEST( csv, container )
+{
+	comma::csv::options csv;
+     csv.full_xpath = true;
+	{
+        std::string s( "2,3,,,6" );
+        std::istringstream iss( s );
+        test_container sample; sample.vector = std::vector< int >( 5, 1 );
+        comma::csv::input_stream< test_container > istream( iss, csv, sample );
+        const test_container *c = istream.read();
+        EXPECT_EQ( c->vector.size(), 5 );
+        std::string so = comma::join( c->vector, ',' );
+        EXPECT_EQ( so, "2,3,1,1,6" );
+    }
+    {
+        std::ostringstream oss;
+        test_container c; c.vector = std::vector< int >( 5, 1 );
+        comma::csv::output_stream< test_container > ostream( oss, csv, c );
+        c.vector[1] = 5;
+        c.vector[2] = 3;
+        ostream.write( c );
+        EXPECT_EQ( c.vector.size(), 5 );
+        EXPECT_EQ( oss.str(), "1,5,3,1,1\n" );
+    }
+}
+
+} } } // namespace comma { namespace csv { namespace stream_test {
 
 namespace comma { namespace csv { namespace stream_test {
 

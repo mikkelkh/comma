@@ -39,7 +39,6 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include "../../application/command_line_options.h"
 #include "../../application/contact_info.h"
-#include "../../application/signal_flag.h"
 #include "../../base/exception.h"
 #include "../../base/types.h"
 #include "../../io/stream.h"
@@ -267,12 +266,11 @@ int main( int argc, char** argv )
         const unsigned int max_count = size ? ( size > 65536u ? 1 : 65536u / size ) : 0;
         std::vector< char > buffer( size ? size * max_count : 65536u );        
         unsigned int round_robin_count = unnamed.size() > 1 ? options.value( "--round-robin", 0 ) : 0;
-        comma::signal_flag is_shutdown;
-        for( bool done = false; !is_shutdown && !done; )
+        for( bool done = false; !done; )
         {
             if( !ready( streams, select ) ) { continue; }
             done = true;
-            for( unsigned int i = 0; !is_shutdown && i < streams.size(); ++i )
+            for( unsigned int i = 0; i < streams.size(); ++i )
             {
                 if( streams[i].closed() ) { continue; }
                 bool ready = select.read().ready( streams[i].fd() );
@@ -287,7 +285,7 @@ int main( int argc, char** argv )
                 }
                 if( !ready && empty ) { done = false; continue; }
                 unsigned int countdown = round_robin_count;
-                while( !is_shutdown && !streams[i].eof() )
+                while( !streams[i].eof() )
                 {
                     unsigned int bytes_read = streams[i].read_available( buffer, countdown ? countdown : max_count );
                     if( bytes_read == 0 ) { break; }

@@ -37,7 +37,6 @@
 #include <boost/thread.hpp>
 #include "../../application/command_line_options.h"
 #include "../../application/contact_info.h"
-#include "../../application/signal_flag.h"
 #include "../../io/select.h"
 #include "../../io/stream.h"
 
@@ -152,13 +151,12 @@ int main( int ac, char** av )
         boost::posix_time::ptime next_update = start_time + update_interval;
         boost::posix_time::ptime next_bucket = start_time + bucket_duration;
 
-        comma::signal_flag is_shutdown;
         bool end_of_stream = false;
         boost::array< char, 65536 > buffer;
         std::ios_base::sync_with_stdio( false ); // unsync to make rdbuf()->in_avail() working
         std::cin.tie( NULL ); // std::cin is tied to std::cout by default
         
-        while( !is_shutdown && !end_of_stream )
+        while( !end_of_stream )
         {
             select.wait( wait_interval );
             while( is->rdbuf()->in_avail() || ( select.check() && select.read().ready( is.fd() ) && is->good() ) )

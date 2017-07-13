@@ -853,7 +853,7 @@ function run_single_test()
                         comma_locked "$comma_test_run_resources_flock" comma_release_resources "$request" "$comma_test_run_resources_counter" "$worker_id"
                         (( $? == 0 )) || {
                             error_ "$name: test $counter: $dir: repeated internal error on release_resources, terminate the test run PID '$comma_test_run_top_pid'"
-                            kill -s TERM $comma_test_run_top_pid
+                            kill -TERM $comma_test_run_top_pid
                         }
                     }
                     error_files="$( find . -name out_of_shared_memory )"
@@ -894,7 +894,7 @@ function run_single_test()
                             continue
                         else
                             error_ "$name: terminate the test run with PID '$comma_test_run_top_pid'"
-                            kill -s TERM $comma_test_run_top_pid
+                            kill -TERM $comma_test_run_top_pid
                         fi
                     fi
                 fi
@@ -929,7 +929,7 @@ function terminate_tests_parallel()
     is_killed=true
     # a process that exits in response to SIGINT should kill itself with SIGINT
     # see http://www.cons.org/cracauer/sigint.html
-    [[ "$1" == "SIGINT" ]] && { trap - INT ; kill -s INT $BASHPID ; }
+    [[ "$1" == "SIGINT" ]] && { trap - INT ; kill -INT $BASHPID ; }
     exit 1
 }
 
@@ -962,7 +962,7 @@ function terminate_tests_serial()
     is_killed=true
     # a process that exits in response to SIGINT should kill itself with SIGINT
     # see http://www.cons.org/cracauer/sigint.html
-    [[ "$1" == "SIGINT" ]] && { trap - INT ; kill -s INT $BASHPID ; }
+    [[ "$1" == "SIGINT" ]] && { trap - INT ; kill -INT $BASHPID ; }
     exit 1
 }
 

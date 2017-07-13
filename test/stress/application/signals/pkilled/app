@@ -26,7 +26,7 @@ function clean_up()
     trap '' SIGTERM # ignore signals
     echo "killed, clean up in $name ($BASHPID, subshell $BASH_SUBSHELL)..." >&2
     rm -f $pipes
-    pkill --signal TERM -P $BASHPID
+    pkill -TERM -P $BASHPID
     wait
     echo "do not touch for $bed_time s..." >&2
     exit 1
@@ -37,7 +37,7 @@ function handler()
 {
     trap '' SIGTERM # ignore signals
     echo "killed, handler in $BASHPID, subshell $BASH_SUBSHELL" >&2
-    pkill --signal TERM -P $BASHPID
+    pkill -TERM -P $BASHPID
     wait
     exit 1
 }
@@ -116,7 +116,7 @@ done
 
 [[ "$do_kill" == "true" ]] && {
     echo "bring the house down" >&2
-    kill -s TERM $BASHPID
+    kill -TERM $BASHPID
 }
 
 wait

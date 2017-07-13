@@ -49,7 +49,6 @@
 #include <boost/algorithm/string.hpp>
 #include "../../application/command_line_options.h"
 #include "../../application/contact_info.h"
-#include "../../application/signal_flag.h"
 #include "../../base/exception.h"
 #include "../../base/types.h"
 #include "../../io/stream.h"

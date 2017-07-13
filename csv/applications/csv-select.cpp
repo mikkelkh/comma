@@ -39,7 +39,6 @@
 #include <boost/regex.hpp>
 #include <boost/scoped_ptr.hpp>
 #include "../../application/command_line_options.h"
-#include "../../application/signal_flag.h"
 #include "../../application/contact_info.h"
 #include "../../base/exception.h"
 #include "../../csv/stream.h"
@@ -372,7 +371,6 @@ int main( int ac, char** av )
             }
             constraints_map.insert( std::make_pair( field, unnamed[i] ) );
         }
-        comma::signal_flag is_shutdown;
         if( csv.binary() )
         {
             #ifdef WIN32
@@ -380,7 +378,7 @@ int main( int ac, char** av )
             #endif
             init_input( csv.format(), options );
             comma::csv::binary_input_stream< input_t > istream( std::cin, csv, input );
-            while( !is_shutdown && ( istream.ready() || ( std::cin.good() && !std::cin.eof() ) ) )
+            while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
             {
                 const input_t* p = istream.read();
                 if( !p || p->done( is_or ) ) { break; }
@@ -397,7 +395,7 @@ int main( int ac, char** av )
         else
         {
             std::string line;
-            while( !is_shutdown && std::cin.good() && !std::cin.eof() )
+            while( std::cin.good() && !std::cin.eof() )
             {
                 std::getline( std::cin, line );
                 line = comma::strip( line, '\r' ); // windows, sigh...
@@ -422,7 +420,7 @@ int main( int ac, char** av )
                 std::cout << std::endl;
                 if( first_matching ) { return 0; }
             }
-            while( !is_shutdown && ( istream.ready() || ( std::cin.good() && !std::cin.eof() ) ) )
+            while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
             {
                 const input_t* p = istream.read();
                 if( !p || p->done( is_or ) ) { break; }

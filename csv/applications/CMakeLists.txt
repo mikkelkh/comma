@@ -18,7 +18,6 @@ add_executable( csv-from-columns ${dir}/csv-from-columns.cpp )
 add_executable( csv-join ${dir}/csv-join.cpp )
 add_executable( csv-sort ${dir}/csv-sort.cpp )
 add_executable( csv-paste ${dir}/csv-paste.cpp )
-#add_executable( csv-make-blocks ${dir}/csv-make-blocks.cpp )
 add_executable( csv-split ${dir}/csv-split.cpp ${dir}/split/split.cpp ${dir}/split/split.h )
 add_executable( csv-time ${dir}/csv-time.cpp )
 add_executable( csv-time-delay ${dir}/csv-time-delay.cpp )
@@ -45,7 +44,6 @@ target_link_libraries ( csv-join ${comma_ALL_EXTERNAL_LIBRARIES} comma_applicati
 target_link_libraries ( csv-sort ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_csv comma_io comma_xpath comma_string )
 target_link_libraries ( csv-select ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_csv comma_xpath comma_string )
 target_link_libraries ( csv-paste ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_string comma_csv comma_io )
-#target_link_libraries ( csv-make-blocks ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_csv comma_xpath comma_string )
 target_link_libraries ( csv-time ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_csv comma_io comma_xpath comma_string )
 target_link_libraries ( csv-time-delay ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_csv comma_string comma_xpath )
 target_link_libraries ( csv-time-join ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_csv comma_io comma_string comma_xpath )
@@ -68,7 +66,6 @@ install( TARGETS csv-bin-cut
                  csv-sort
                  csv-from-columns
                  csv-paste
-                 #csv-make-blocks
                  csv-split
                  csv-time
                  csv-time-delay
@@ -87,26 +84,30 @@ install( TARGETS csv-bin-cut
                  csv-to-sql
          RUNTIME DESTINATION ${comma_INSTALL_BIN_DIR}
          COMPONENT Runtime )
-         
-add_executable( csv-update ${dir}/csv-update.cpp )
-target_link_libraries ( csv-update ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_io comma_string comma_xpath comma_csv )
-install( TARGETS csv-update RUNTIME DESTINATION ${comma_INSTALL_BIN_DIR} COMPONENT Runtime )
-         
-add_executable( csv-units ${dir}/csv-units.cpp )
-target_link_libraries ( csv-units ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_csv comma_io comma_xpath comma_string )
-install( TARGETS csv-units RUNTIME DESTINATION ${comma_INSTALL_BIN_DIR} COMPONENT Runtime )
 
-add_executable( csv-interval ${dir}/csv-interval.cpp )
-target_link_libraries ( csv-interval ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_csv comma_io comma_xpath )
-install( TARGETS csv-interval RUNTIME DESTINATION ${comma_INSTALL_BIN_DIR} COMPONENT Runtime )
+add_executable( csv-blocks ${dir}/csv-blocks.cpp )
+target_link_libraries ( csv-blocks ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_io comma_string comma_xpath comma_csv )
+install( TARGETS csv-blocks RUNTIME DESTINATION ${comma_INSTALL_BIN_DIR} COMPONENT Runtime )
 
 add_executable( csv-cast ${dir}/csv-cast.cpp )
 target_link_libraries ( csv-cast ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_csv )
 install( TARGETS csv-cast RUNTIME DESTINATION ${comma_INSTALL_BIN_DIR} COMPONENT Runtime )
 
-add_executable( csv-blocks ${dir}/csv-blocks.cpp )
-target_link_libraries ( csv-blocks ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_io comma_string comma_xpath comma_csv )
-install( TARGETS csv-blocks RUNTIME DESTINATION ${comma_INSTALL_BIN_DIR} COMPONENT Runtime )
+add_executable( csv-enumerate ${dir}/csv-enumerate.cpp )
+target_link_libraries ( csv-enumerate ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_io comma_string comma_xpath comma_csv )
+install( TARGETS csv-enumerate RUNTIME DESTINATION ${comma_INSTALL_BIN_DIR} COMPONENT Runtime )
+
+add_executable( csv-interval ${dir}/csv-interval.cpp )
+target_link_libraries ( csv-interval ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_csv comma_io comma_xpath )
+install( TARGETS csv-interval RUNTIME DESTINATION ${comma_INSTALL_BIN_DIR} COMPONENT Runtime )
+         
+add_executable( csv-units ${dir}/csv-units.cpp )
+target_link_libraries ( csv-units ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_csv comma_io comma_xpath comma_string )
+install( TARGETS csv-units RUNTIME DESTINATION ${comma_INSTALL_BIN_DIR} COMPONENT Runtime )
+
+add_executable( csv-update ${dir}/csv-update.cpp )
+target_link_libraries ( csv-update ${comma_ALL_EXTERNAL_LIBRARIES} comma_application comma_io comma_string comma_xpath comma_csv )
+install( TARGETS csv-update RUNTIME DESTINATION ${comma_INSTALL_BIN_DIR} COMPONENT Runtime )
 
 if( NOT WIN32 )
     add_executable( csv-repeat ${dir}/csv-repeat.cpp )

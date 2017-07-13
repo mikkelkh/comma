@@ -38,7 +38,6 @@
 #include <map>
 #include "../../application/command_line_options.h"
 #include "../../application/contact_info.h"
-#include "../../application/signal_flag.h"
 
 using namespace comma;
 
@@ -138,7 +137,6 @@ int main( int ac, char** av )
         command_line_options options( ac, av );
         if( ac > 1 || options.exists( "--help" ) || options.exists( "-h" ) ) { usage(); } //could just say ac > 1... but leave for future args
 
-        comma::signal_flag is_shutdown;
         histogram h;
 
         const std::size_t read_size=65535; //todo: better way?
@@ -146,7 +144,7 @@ int main( int ac, char** av )
         std::size_t offset=0;
 
         //read as many bytes as available on stdin
-        while( !is_shutdown && std::cin.good() && !std::cin.eof() )
+        while( std::cin.good() && !std::cin.eof() )
         {
             int bytes_read = ::read( 0, &data[0], read_size );
             if( bytes_read <= 0 ) { break; }
